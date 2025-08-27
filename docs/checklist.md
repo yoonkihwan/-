@@ -86,17 +86,6 @@
 
 ---
 
-### **Phase 7: 핵심 기능 6 - 날씨 표시**
-
-- [ ] 1. **날씨 API 키 준비**: 사용자에게 무료 API 키 발급 안내
-- [ ] 2. **서비스 구현**: `services/weather_service.py` 파일 작성
-    - `requests` 라이브러리를 사용하여 API 호출 및 날씨 데이터(JSON) 파싱
-- [ ] 3. **UI 구현**: 메인 창에 현재 날씨(예: 아이콘, 온도)를 표시할 영역 추가 및 `WeatherService`와 연동
-- [ ] 4. `project_log.md`에 날씨 기능 개발 완료 기록
-- [ ] 5. **(Git Push 🚀)**: "Feature: Implement weather display" 메시지로 커밋 및 푸시
-
----
-
 ### **Phase 8: 최종 검토 및 리팩토링**
 
 - [ ] 1. 전체 코드 리뷰 및 클린 코드 원칙에 따른 리팩토링

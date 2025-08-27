@@ -1,0 +1,4 @@
+pyperclip
+mss
+Pillow
+pytesseract
