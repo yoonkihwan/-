@@ -1,4 +1,4 @@
 {
     "screenshot_save_dir": "screenshots",
-    "tesseract_cmd_path": ""
+    "tesseract_cmd_path": "C:/Program Files/Tesseract-OCR/tesseract.exe"
 }

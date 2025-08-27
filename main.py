@@ -6,7 +6,9 @@ from services.todo_service import TodoService
 from services.screenshot_service import ScreenshotService
 from services.config_service import ConfigService
 from services.ocr_service import OCRService
+from services.clipboard_service import ClipboardService
 from ui.todo_frame import TodoFrame
+from ui.clipboard_frame import ClipboardFrame
 from datetime import datetime
 
 class Application(tk.Tk):
@@ -20,6 +22,7 @@ class Application(tk.Tk):
         self.todo_service = TodoService(repository=TodoRepository(db_path="todos.db"))
         self.screenshot_service = ScreenshotService(config_service=self.config_service)
         self.ocr_service = OCRService(tesseract_cmd_path=self.config_service.get('tesseract_cmd_path'))
+        self.clipboard_service = ClipboardService(root=self, on_change_callback=None)
 
         # --- Main Layout ---
         top_frame = tk.Frame(self)
@@ -35,16 +38,17 @@ class Application(tk.Tk):
         bottom_frame = tk.Frame(self)
         bottom_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 
-        left_frame = tk.Frame(bottom_frame, width=200)
+        left_frame = tk.Frame(bottom_frame, width=250)
         left_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 10))
+        left_frame.pack_propagate(False) # 왼쪽 프레임 크기 고정
 
         right_frame = tk.Frame(bottom_frame)
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
         # --- Widgets ---
-        # Screenshot controls
+        # Left Frame Widgets
         screenshot_frame = tk.LabelFrame(left_frame, text="스크린샷 & OCR")
-        screenshot_frame.pack(fill=tk.X, pady=10)
+        screenshot_frame.pack(fill=tk.X, pady=(0, 10))
         fs_button = tk.Button(screenshot_frame, text="전체 화면 캡처", command=self.capture_fullscreen)
         fs_button.pack(fill=tk.X, padx=5, pady=5)
         sr_button = tk.Button(screenshot_frame, text="영역 선택 캡처", command=self.capture_region)
@@ -52,7 +56,6 @@ class Application(tk.Tk):
         ocr_button = tk.Button(screenshot_frame, text="영역 캡처 후 OCR", command=self.capture_and_ocr)
         ocr_button.pack(fill=tk.X, padx=5, pady=5)
 
-        # Settings controls
         settings_frame = tk.LabelFrame(left_frame, text="설정")
         settings_frame.pack(fill=tk.X, pady=10)
         change_dir_button = tk.Button(settings_frame, text="저장 폴더 변경", command=self.change_screenshot_directory)
@@ -60,9 +63,15 @@ class Application(tk.Tk):
         tesseract_path_button = tk.Button(settings_frame, text="Tesseract 경로 설정", command=self.set_tesseract_path)
         tesseract_path_button.pack(fill=tk.X, padx=5, pady=5)
 
-        # Todo list
+        clipboard_history_frame = ClipboardFrame(left_frame, self.clipboard_service)
+        clipboard_history_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
+
+        # Right Frame Widgets
         todo_app_frame = TodoFrame(right_frame, self.todo_service)
         todo_app_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Start background services
+        self.clipboard_service.start_monitoring()
 
     def update_clock(self):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -106,7 +115,6 @@ class Application(tk.Tk):
 
     def run_ocr(self, filepath):
         self.update_status("텍스트 인식 중...")
-        # OCR 서비스가 새로운 경로를 사용하도록 다시 초기화
         self.ocr_service = OCRService(tesseract_cmd_path=self.config_service.get('tesseract_cmd_path'))
         extracted_text = self.ocr_service.extract_text_from_image(filepath)
         if "오류:" in extracted_text:
