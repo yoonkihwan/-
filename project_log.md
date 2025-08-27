@@ -12,3 +12,7 @@
 - `repositories/todo_repository.py` SQLite 연동 CRUD 구현
 - `services/todo_service.py` 비즈니스 로직 구현
 - `ui/todo_frame.py` 및 `main.py`를 통한 UI 구현 및 통합
+- 버그 수정: `delete_todo` 메서드 호출 오류 해결
+
+**[2025-08-28] Phase 3: 날짜/시간 표시 기능 개발 완료**
+- `main.py`에 실시간으로 업데이트되는 날짜/시간 라벨 추가
