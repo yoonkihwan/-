@@ -93,7 +93,7 @@ class TodoFrame(tk.Frame):
         """선택된 할 일을 삭제합니다."""
         todo_id = self.get_selected_todo_id()
         if todo_id is not None:
-            if self.todo_service.delete(todo_id):
+            if self.todo_service.delete_todo(todo_id):
                 self.refresh_todos()
             else:
                 messagebox.showerror("삭제 실패", "할 일을 삭제하지 못했습니다.")
