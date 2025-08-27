@@ -24,3 +24,7 @@
 **[2025-08-28] 추가 요청사항 처리**
 - `docs` 폴더를 생성하여 모든 `.md` 문서 파일 정리
 - `config.json`과 `ConfigService`를 구현하여 스크린샷 저장 폴더를 설정하는 기능 추가
+
+**[2025-08-28] Phase 5: OCR 기능 개발 완료**
+- `services/ocr_service.py`에 Tesseract를 이용한 텍스트 추출 로직 구현
+- `main.py`에 '캡처 후 OCR' 버튼 및 결과 창 UI 추가
