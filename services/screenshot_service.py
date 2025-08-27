@@ -4,20 +4,23 @@ import mss
 from PIL import Image
 from datetime import datetime
 import os
+from services.config_service import ConfigService
 
 class ScreenshotService:
     """
     스크린샷 캡처 관련 로직을 처리합니다.
     """
-    def __init__(self, save_dir="screenshots"):
-        self.save_dir = save_dir
-        if not os.path.exists(self.save_dir):
-            os.makedirs(self.save_dir)
+    def __init__(self, config_service: ConfigService):
+        self.config_service = config_service
 
     def _get_timestamp_path(self, extension=".png"):
         """타임스탬프를 기반으로 한 파일 저장 경로를 반환합니다."""
+        save_dir = self.config_service.get("screenshot_save_dir")
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return os.path.join(self.save_dir, f"capture_{timestamp}{extension}")
+        return os.path.join(save_dir, f"capture_{timestamp}{extension}")
 
     def capture_fullscreen(self) -> str:
         """

@@ -20,3 +20,7 @@
 **[2025-08-28] Phase 4: 스크린샷 기능 개발 완료**
 - `services/screenshot_service.py`에 전체/부분 화면 캡처 로직 구현
 - `main.py`에 관련 UI 버튼 추가 및 서비스 연동
+
+**[2025-08-28] 추가 요청사항 처리**
+- `docs` 폴더를 생성하여 모든 `.md` 문서 파일 정리
+- `config.json`과 `ConfigService`를 구현하여 스크린샷 저장 폴더를 설정하는 기능 추가
