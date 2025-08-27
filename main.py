@@ -19,7 +19,7 @@ class Application(tk.Tk):
         self.config_service = ConfigService()
         self.todo_service = TodoService(repository=TodoRepository(db_path="todos.db"))
         self.screenshot_service = ScreenshotService(config_service=self.config_service)
-        self.ocr_service = OCRService() # Tesseract 경로가 PATH에 없으면 인자로 전달해야 함
+        self.ocr_service = OCRService(tesseract_cmd_path=self.config_service.get('tesseract_cmd_path'))
 
         # --- Main Layout ---
         top_frame = tk.Frame(self)
@@ -57,6 +57,8 @@ class Application(tk.Tk):
         settings_frame.pack(fill=tk.X, pady=10)
         change_dir_button = tk.Button(settings_frame, text="저장 폴더 변경", command=self.change_screenshot_directory)
         change_dir_button.pack(fill=tk.X, padx=5, pady=5)
+        tesseract_path_button = tk.Button(settings_frame, text="Tesseract 경로 설정", command=self.set_tesseract_path)
+        tesseract_path_button.pack(fill=tk.X, padx=5, pady=5)
 
         # Todo list
         todo_app_frame = TodoFrame(right_frame, self.todo_service)
@@ -104,6 +106,8 @@ class Application(tk.Tk):
 
     def run_ocr(self, filepath):
         self.update_status("텍스트 인식 중...")
+        # OCR 서비스가 새로운 경로를 사용하도록 다시 초기화
+        self.ocr_service = OCRService(tesseract_cmd_path=self.config_service.get('tesseract_cmd_path'))
         extracted_text = self.ocr_service.extract_text_from_image(filepath)
         if "오류:" in extracted_text:
             messagebox.showerror("OCR 실패", extracted_text)
@@ -136,6 +140,16 @@ class Application(tk.Tk):
         if new_dir:
             self.config_service.set("screenshot_save_dir", new_dir)
             self.update_status(f"스크린샷 저장 폴더가 변경되었습니다.")
+
+    def set_tesseract_path(self):
+        filepath = filedialog.askopenfilename(
+            title="tesseract.exe 파일을 선택하세요",
+            filetypes=[("Executable files", "*.exe")]
+        )
+        if filepath:
+            self.config_service.set('tesseract_cmd_path', filepath)
+            self.update_status("Tesseract 경로가 설정되었습니다. 다시 시도해주세요.")
+            messagebox.showinfo("설정 완료", "Tesseract 경로가 설정되었습니다. OCR 기능을 다시 시도해주세요.")
 
 if __name__ == "__main__":
     app = Application()

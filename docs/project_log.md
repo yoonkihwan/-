@@ -28,3 +28,4 @@
 **[2025-08-28] Phase 5: OCR 기능 개발 완료**
 - `services/ocr_service.py`에 Tesseract를 이용한 텍스트 추출 로직 구현
 - `main.py`에 '캡처 후 OCR' 버튼 및 결과 창 UI 추가
+- 버그 수정: Tesseract 경로를 앱 내에서 설정하는 기능 추가
