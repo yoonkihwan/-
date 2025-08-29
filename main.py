@@ -14,12 +14,14 @@ from services.clipboard_service import ClipboardService
 from services.launcher_service import LauncherService
 from services.formatter_service import FormatterService
 from services.template_service import TemplateService
+from services.translate_service import TranslateService
 
 from ui.todo_frame import TodoFrame
 from ui.clipboard_frame import ClipboardFrame
 from ui.launcher_frame import LauncherFrame
 from ui.formatter_frame import FormatterFrame
 from ui.template_frame import TemplateFrame
+from ui.translator_frame import TranslatorFrame
 
 try:
     # 선택적: OS 드래그앤드롭 지원
@@ -49,6 +51,7 @@ class Application(BaseTk):
         self.launcher_service = LauncherService()
         self.formatter_service = FormatterService()
         self.template_service = TemplateService()
+        self.translate_service = TranslateService()
 
         # Restore window settings (geometry/topmost/fullscreen)
         self._restore_window_settings()
@@ -113,11 +116,13 @@ class Application(BaseTk):
         launcher_app_frame = LauncherFrame(notebook, self.launcher_service, self)
         formatter_app_frame = FormatterFrame(notebook, self.formatter_service, self)
         template_app_frame = TemplateFrame(notebook, self.template_service, self)
+        translator_app_frame = TranslatorFrame(notebook, self.translate_service, self)
 
         notebook.add(todo_app_frame, text="할 일")
         notebook.add(launcher_app_frame, text="작업 공간")
         notebook.add(formatter_app_frame, text="형식 변환")
         notebook.add(template_app_frame, text="템플릿")
+        notebook.add(translator_app_frame, text="번역")
         # Keep reference for tab change handling
         self.notebook = notebook
         self.notebook.bind('<<NotebookTabChanged>>', self._on_tab_changed)
@@ -327,6 +332,7 @@ class Application(BaseTk):
             '작업 공간': (1000, 700),
             '형식 변환': (900, 600),
             '템플릿': (900, 600),
+            '번역': (900, 600),
         }
         w, h = minsize_map.get(tab_text, (800, 600))
         try:
