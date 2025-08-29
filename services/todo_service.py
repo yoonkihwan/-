@@ -51,3 +51,54 @@ class TodoService:
         """
         return self.repository.delete(todo_id)
 
+    # ---- Advanced helpers (non-breaking additions) ----
+    def add_todo_adv(self, content: str, parent_id: Optional[int] = None) -> Optional[Todo]:
+        if not content.strip():
+            return None
+        if hasattr(self.repository, 'create_advanced'):
+            return self.repository.create_advanced(content, parent_id)
+        return self.repository.create(content)
+
+    def get_all_todos_adv(self, status_filter: Optional[str] = None, show_archived: bool = False) -> List[Todo]:
+        if hasattr(self.repository, 'get_all_advanced'):
+            return self.repository.get_all_advanced(status_filter, show_archived)
+        return self.repository.get_all()
+
+    def update_todos_status_bulk(self, todo_ids: List[int], status: str) -> int:
+        if status not in ['pending', 'completed']:
+            return 0
+        if hasattr(self.repository, 'update_status_bulk'):
+            return self.repository.update_status_bulk(todo_ids, status)
+        count = 0
+        for tid in todo_ids:
+            if self.repository.update_status(tid, status):
+                count += 1
+        return count
+
+    def delete_many(self, todo_ids: List[int]) -> int:
+        if hasattr(self.repository, 'delete_many'):
+            return self.repository.delete_many(todo_ids)
+        count = 0
+        for tid in todo_ids:
+            if self.repository.delete(tid):
+                count += 1
+        return count
+
+    def update_sort_orders(self, parent_id: Optional[int], ordered_ids: List[int]) -> None:
+        if hasattr(self.repository, 'update_sort_orders'):
+            self.repository.update_sort_orders(parent_id, ordered_ids)
+
+    def archive_completed_older_than_days(self, days: int) -> int:
+        if hasattr(self.repository, 'archive_completed_older_than_days'):
+            return self.repository.archive_completed_older_than_days(days)
+        return 0
+
+    def add_from_text(self, text: str, parent_id: Optional[int] = None) -> int:
+        lines = [ln.strip() for ln in (text or '').splitlines()]
+        items = [ln for ln in lines if ln]
+        count = 0
+        for ln in items:
+            t = self.add_todo_adv(ln, parent_id)
+            if t:
+                count += 1
+        return count

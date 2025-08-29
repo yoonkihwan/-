@@ -1,14 +1,23 @@
 
 import tkinter as tk
-from tkinter import messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog
+import os
+import sys
+import subprocess
 from repositories.todo_repository import TodoRepository
 from services.todo_service import TodoService
 from services.screenshot_service import ScreenshotService
 from services.config_service import ConfigService
 from services.ocr_service import OCRService
 from services.clipboard_service import ClipboardService
+from services.launcher_service import LauncherService
+from services.formatter_service import FormatterService
+from services.template_service import TemplateService # 추가
 from ui.todo_frame import TodoFrame
 from ui.clipboard_frame import ClipboardFrame
+from ui.launcher_frame import LauncherFrame
+from ui.formatter_frame import FormatterFrame
+from ui.template_frame import TemplateFrame # 추가
 from datetime import datetime
 
 class Application(tk.Tk):
@@ -23,6 +32,9 @@ class Application(tk.Tk):
         self.screenshot_service = ScreenshotService(config_service=self.config_service)
         self.ocr_service = OCRService(tesseract_cmd_path=self.config_service.get('tesseract_cmd_path'))
         self.clipboard_service = ClipboardService(root=self, on_change_callback=None)
+        self.launcher_service = LauncherService()
+        self.formatter_service = FormatterService()
+        self.template_service = TemplateService() # 추가
 
         # --- Main Layout ---
         top_frame = tk.Frame(self)
@@ -58,17 +70,36 @@ class Application(tk.Tk):
 
         settings_frame = tk.LabelFrame(left_frame, text="설정")
         settings_frame.pack(fill=tk.X, pady=10)
-        change_dir_button = tk.Button(settings_frame, text="저장 폴더 변경", command=self.change_screenshot_directory)
-        change_dir_button.pack(fill=tk.X, padx=5, pady=5)
-        tesseract_path_button = tk.Button(settings_frame, text="Tesseract 경로 설정", command=self.set_tesseract_path)
-        tesseract_path_button.pack(fill=tk.X, padx=5, pady=5)
+        
+        # 설정 프레임 내부를 그리드로 재구성
+        settings_frame.columnconfigure(0, weight=1)
+        settings_frame.columnconfigure(1, weight=1)
 
-        clipboard_history_frame = ClipboardFrame(left_frame, self.clipboard_service)
+        change_dir_button = tk.Button(settings_frame, text="저장 폴더 변경", command=self.change_screenshot_directory)
+        change_dir_button.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+        open_dir_button = tk.Button(settings_frame, text="저장 폴더 열기", command=self.open_screenshot_directory)
+        open_dir_button.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
+        
+        tesseract_path_button = tk.Button(settings_frame, text="Tesseract 경로 설정", command=self.set_tesseract_path)
+        tesseract_path_button.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+
+        clipboard_history_frame = ClipboardFrame(left_frame, app=self, clipboard_service=self.clipboard_service)
         clipboard_history_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
 
-        # Right Frame Widgets
-        todo_app_frame = TodoFrame(right_frame, self.todo_service)
-        todo_app_frame.pack(fill=tk.BOTH, expand=True)
+        # Right Frame Widgets (이제 Notebook으로 관리)
+        notebook = ttk.Notebook(right_frame)
+        notebook.pack(fill=tk.BOTH, expand=True)
+
+        todo_app_frame = TodoFrame(notebook, self.todo_service)
+        self.todo_frame = todo_app_frame
+        launcher_app_frame = LauncherFrame(notebook, self.launcher_service, self)
+        formatter_app_frame = FormatterFrame(notebook, self.formatter_service, self)
+        template_app_frame = TemplateFrame(notebook, self.template_service, self)
+
+        notebook.add(todo_app_frame, text="투두리스트")
+        notebook.add(launcher_app_frame, text="작업 공간") # 이름 변경
+        notebook.add(formatter_app_frame, text="텍스트 변환기")
+        notebook.add(template_app_frame, text="이메일 템플릿")
 
         # Start background services
         self.clipboard_service.start_monitoring()
@@ -120,7 +151,7 @@ class Application(tk.Tk):
         if "오류:" in extracted_text:
             messagebox.showerror("OCR 실패", extracted_text)
         else:
-            self.show_ocr_result(extracted_text)
+            self.show_ocr_result2(extracted_text)
         self.update_status("OCR 완료")
 
     def show_ocr_result(self, text):
@@ -140,6 +171,42 @@ class Application(tk.Tk):
         copy_button = tk.Button(result_window, text="클립보드에 복사", command=copy_to_clipboard)
         copy_button.pack(pady=5)
 
+    def show_ocr_result2(self, text):
+        result_window = tk.Toplevel(self)
+        result_window.title("OCR 결과")
+        result_window.geometry("400x360")
+
+        text_widget = tk.Text(result_window, wrap=tk.WORD, font=('Malgun Gothic', 10))
+        text_widget.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        text_widget.insert(tk.END, text)
+
+        btns = tk.Frame(result_window)
+        btns.pack(fill=tk.X, pady=5)
+
+        def copy_to_clipboard():
+            self.clipboard_clear()
+            self.clipboard_append(text_widget.get("1.0", tk.END))
+            self.update_status("클립보드에 복사했습니다")
+
+        def add_to_todo():
+            content = text_widget.get("1.0", tk.END)
+            if not content.strip():
+                messagebox.showwarning("추가 실패", "추가할 내용이 없습니다.")
+                return
+            if hasattr(self.todo_service, 'add_from_text'):
+                count = self.todo_service.add_from_text(content)
+                messagebox.showinfo("할 일 추가", f"{count}개 항목을 추가했습니다.")
+            else:
+                self.todo_service.add_todo(content.strip())
+                messagebox.showinfo("할 일 추가", "1개 항목을 추가했습니다.")
+            if hasattr(self, 'todo_frame'):
+                self.todo_frame.refresh_todos()
+
+        copy_button = tk.Button(btns, text="클립보드 복사", command=copy_to_clipboard)
+        copy_button.pack(side=tk.LEFT, padx=5)
+        add_button = tk.Button(btns, text="할 일로 추가", command=add_to_todo)
+        add_button.pack(side=tk.LEFT, padx=5)
+
     def change_screenshot_directory(self):
         new_dir = filedialog.askdirectory(
             title="스크린샷 저장 폴더 선택",
@@ -148,6 +215,18 @@ class Application(tk.Tk):
         if new_dir:
             self.config_service.set("screenshot_save_dir", new_dir)
             self.update_status(f"스크린샷 저장 폴더가 변경되었습니다.")
+
+    def open_screenshot_directory(self):
+        path = self.config_service.get("screenshot_save_dir")
+        try:
+            if sys.platform == "win32":
+                os.startfile(path)
+            elif sys.platform == "darwin":  # macOS
+                subprocess.run(["open", path], check=True)
+            else:  # Linux
+                subprocess.run(["xdg-open", path], check=True)
+        except Exception as e:
+            messagebox.showerror("폴더 열기 실패", f"폴더를 열 수 없습니다: {e}")
 
     def set_tesseract_path(self):
         filepath = filedialog.askopenfilename(
@@ -162,4 +241,3 @@ class Application(tk.Tk):
 if __name__ == "__main__":
     app = Application()
     app.mainloop()
-

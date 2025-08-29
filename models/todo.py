@@ -1,6 +1,6 @@
 
 from dataclasses import dataclass
-from datetime import datetime
+from typing import Optional
 
 @dataclass
 class Todo:
@@ -11,4 +11,6 @@ class Todo:
     content: str
     status: str  # 'pending', 'completed'
     created_at: str
-
+    sort_order: int = 0
+    parent_id: Optional[int] = None
+    archived_at: Optional[str] = None

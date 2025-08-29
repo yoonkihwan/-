@@ -14,6 +14,8 @@ class TodoRepository:
         """
         self.db_path = db_path
         self._create_table()
+        # Ensure new columns exist for advanced features
+        self._migrate()
 
     def _get_connection(self):
         """데이터베이스 연결을 반환합니다."""
@@ -31,9 +33,128 @@ class TodoRepository:
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         content TEXT NOT NULL,
                         status TEXT NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        sort_order INTEGER DEFAULT 0,
+                        parent_id INTEGER NULL,
+                        archived_at TIMESTAMP NULL
                     )
                 ''')
+        finally:
+            conn.close()
+
+    def _migrate(self):
+        """Add missing columns for older databases (SQLite ALTER TABLE ADD COLUMN is idempotent)."""
+        conn = self._get_connection()
+        try:
+            with conn:
+                cur = conn.cursor()
+                for sql in (
+                    "ALTER TABLE todos ADD COLUMN sort_order INTEGER DEFAULT 0",
+                    "ALTER TABLE todos ADD COLUMN parent_id INTEGER NULL",
+                    "ALTER TABLE todos ADD COLUMN archived_at TIMESTAMP NULL",
+                ):
+                    try:
+                        cur.execute(sql)
+                    except Exception:
+                        # Ignore if column already exists
+                        pass
+        finally:
+            conn.close()
+
+    # --- Advanced CRUD helpers ---
+    def create_advanced(self, content: str, parent_id: Optional[int] = None):
+        conn = self._get_connection()
+        try:
+            with conn:
+                cur = conn.cursor()
+                # next sort order within same parent
+                if parent_id is None:
+                    cur.execute("SELECT COALESCE(MAX(sort_order), 0) + 1 FROM todos WHERE parent_id IS NULL AND archived_at IS NULL")
+                else:
+                    cur.execute("SELECT COALESCE(MAX(sort_order), 0) + 1 FROM todos WHERE parent_id = ? AND archived_at IS NULL", (parent_id,))
+                next_order = cur.fetchone()[0] or 1
+
+                cur.execute(
+                    "INSERT INTO todos (content, status, sort_order, parent_id) VALUES (?, 'pending', ?, ?)",
+                    (content, next_order, parent_id)
+                )
+                new_id = cur.lastrowid
+                cur.execute("SELECT id, content, status, created_at, sort_order, parent_id, archived_at FROM todos WHERE id = ?", (new_id,))
+                row = cur.fetchone()
+                if row:
+                    return Todo(id=row[0], content=row[1], status=row[2], created_at=row[3], sort_order=row[4], parent_id=row[5], archived_at=row[6])
+                return None
+        finally:
+            conn.close()
+
+    def get_all_advanced(self, status_filter: Optional[str] = None, show_archived: bool = False) -> List[Todo]:
+        conn = self._get_connection()
+        try:
+            with conn:
+                cur = conn.cursor()
+                q = "SELECT id, content, status, created_at, sort_order, parent_id, archived_at FROM todos"
+                clauses = []
+                params = []
+                if not show_archived:
+                    clauses.append("archived_at IS NULL")
+                if status_filter in ('pending','completed'):
+                    clauses.append("status = ?")
+                    params.append(status_filter)
+                if clauses:
+                    q += " WHERE " + " AND ".join(clauses)
+                q += " ORDER BY COALESCE(parent_id, id) ASC, sort_order ASC, created_at ASC"
+                cur.execute(q, params)
+                rows = cur.fetchall()
+                return [Todo(id=r[0], content=r[1], status=r[2], created_at=r[3], sort_order=r[4], parent_id=r[5], archived_at=r[6]) for r in rows]
+        finally:
+            conn.close()
+
+    def update_status_bulk(self, todo_ids: List[int], status: str) -> int:
+        if not todo_ids:
+            return 0
+        conn = self._get_connection()
+        try:
+            with conn:
+                cur = conn.cursor()
+                qmarks = ",".join(["?"]*len(todo_ids))
+                cur.execute(f"UPDATE todos SET status = ? WHERE id IN ({qmarks})", [status, *todo_ids])
+                return cur.rowcount
+        finally:
+            conn.close()
+
+    def delete_many(self, todo_ids: List[int]) -> int:
+        if not todo_ids:
+            return 0
+        conn = self._get_connection()
+        try:
+            with conn:
+                cur = conn.cursor()
+                qmarks = ",".join(["?"]*len(todo_ids))
+                cur.execute(f"DELETE FROM todos WHERE id IN ({qmarks})", todo_ids)
+                return cur.rowcount
+        finally:
+            conn.close()
+
+    def update_sort_orders(self, parent_id: Optional[int], ordered_ids: List[int]) -> None:
+        conn = self._get_connection()
+        try:
+            with conn:
+                cur = conn.cursor()
+                for idx, tid in enumerate(ordered_ids, start=1):
+                    cur.execute("UPDATE todos SET sort_order = ? WHERE id = ?", (idx, tid))
+        finally:
+            conn.close()
+
+    def archive_completed_older_than_days(self, days: int) -> int:
+        conn = self._get_connection()
+        try:
+            with conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "UPDATE todos SET archived_at = CURRENT_TIMESTAMP WHERE archived_at IS NULL AND status = 'completed' AND created_at < datetime('now', ?)",
+                    (f'-{int(days)} days',)
+                )
+                return cur.rowcount
         finally:
             conn.close()
 
@@ -110,4 +231,3 @@ class TodoRepository:
                 return cursor.rowcount > 0
         finally:
             conn.close()
-
