@@ -35,8 +35,31 @@
 - `ui/clipboard_frame.py` UI 컴포넌트 구현
 - `main.py`에 클립보드 히스토리 기능 통합
 
-**[2025-08-28] Phase 8: 최종 검토 및 문서화 완료**
-- 전체 코드 리뷰 완료
-- `requirements.txt` 파일 생성
-- `README.md` 파일 작성 및 프로젝트 문서화 완료
+**[2025-08-29] Phase 7: '작업 공간' 기능으로 업그레이드**
+- 기존 '빠른 실행' 기능을 '작업 공간'으로 확장
+- `models/workspace.py` 데이터 모델 추가
+- `repositories/launcher_repository.py`를 작업 공간 지원하도록 DB 스키마 변경 및 자동 마이그레이션 로직 추가
+- `services/launcher_service.py`에 URL 실행 및 작업 공간 일괄 실행 로직 추가
+- `ui/launcher_frame.py` UI를 작업 공간 관리 형태로 전면 개편
+
+**[2025-08-29] Phase 8: '작업 공간' 기능 버그 수정**
+- `repositories/launcher_repository.py`: 'url' 타입을 허용하도록 DB 제약 조건 오류 수정
+- `ui/launcher_frame.py`: URL 추가 시 이름 입력 창이 두 번 뜨는 오류 수정
+- `ui/launcher_frame.py`: 이벤트 핸들러 로직 오류로 인한 `IndentationError` 수정
+
+**[2025-08-29] Phase 9: 텍스트 서식 변환기 기능 개발**
+- `services/formatter_service.py`에 텍스트 변환 로직 구현
+- `ui/formatter_frame.py` UI 컴포넌트 구현
+- `main.py`에 '텍스트 변환기' 탭 추가 및 기능 통합
+- '공백→줄바꿈(Excel)' 변환 기능 추가
+
+**[2025-08-29] Phase 10: 이메일 템플릿 관리자 기능 개발**
+- `models/template.py` 데이터 모델 정의
+- `repositories/template_repository.py` DB 연동 CRUD 구현
+- `services/template_service.py` 비즈니스 로직 구현
+- `ui/template_frame.py` UI 컴포넌트 구현
+- `main.py`에 '이메일 템플릿' 탭 추가 및 기능 통합
+
+**[2025-08-29] Phase 11: 최종 문서화**
+- `README.md`, `project_log.md`, `checklist.md` 등 문서 최신화 작업
 - 프로젝트 개발 완료

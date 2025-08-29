@@ -5,8 +5,9 @@ class ClipboardFrame(tk.Frame):
     """
     클립보드 히스토리 UI를 구성하는 프레임
     """
-    def __init__(self, master, clipboard_service: ClipboardService, **kwargs):
+    def __init__(self, master, app, clipboard_service: ClipboardService, **kwargs):
         super().__init__(master, **kwargs)
+        self.app = app # 메인 앱 참조
         self.clipboard_service = clipboard_service
         self.clipboard_service.on_change_callback = self.refresh_history
 
@@ -52,6 +53,6 @@ class ClipboardFrame(tk.Frame):
             text_to_copy = history[selected_index]
             self.clipboard_service.copy_to_clipboard(text_to_copy)
             
-            # (Optional) 사용자에게 복사되었음을 알림
-            self.master.master.update_status(f"'{self.history_listbox.get(selected_index)}' 복사됨")
+            # 메인 앱의 상태 업데이트 메서드 호출
+            self.app.update_status(f"'{self.history_listbox.get(selected_index)}' 복사됨")
 
