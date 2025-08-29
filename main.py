@@ -37,6 +37,8 @@ class Application(BaseTk):
         super().__init__()
         self.title("업무 프로그램")
         self.geometry("1000x700")
+        # Window state variables
+        self._last_normal_geometry = None
 
         # --- Services ---
         self.config_service = ConfigService()
@@ -47,6 +49,9 @@ class Application(BaseTk):
         self.launcher_service = LauncherService()
         self.formatter_service = FormatterService()
         self.template_service = TemplateService()
+
+        # Restore window settings (geometry/topmost/fullscreen)
+        self._restore_window_settings()
 
         # --- Main Layout ---
         top_frame = tk.Frame(self)
@@ -83,6 +88,18 @@ class Application(BaseTk):
         tk.Button(settings_frame, text="폴더 변경", command=self.change_screenshot_directory).grid(row=0, column=0, sticky="ew", padx=5, pady=5)
         tk.Button(settings_frame, text="폴더 열기", command=self.open_screenshot_directory).grid(row=0, column=1, sticky="ew", padx=5, pady=5)
         tk.Button(settings_frame, text="Tesseract 경로 지정", command=self.set_tesseract_path).grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+        # Window options: Always on Top / Fullscreen
+        self.topmost_var = tk.BooleanVar(value=bool(self.config_service.get('window_topmost') or False))
+        self.fullscreen_var = tk.BooleanVar(value=bool(self.config_service.get('window_fullscreen') or False))
+        opt_frame = tk.Frame(settings_frame)
+        opt_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=5, pady=(0, 5))
+        tk.Checkbutton(opt_frame, text="항상 위", variable=self.topmost_var, command=self.toggle_topmost).pack(side=tk.LEFT)
+        tk.Checkbutton(opt_frame, text="전체화면", variable=self.fullscreen_var, command=self.toggle_fullscreen).pack(side=tk.LEFT, padx=(10, 0))
+        # Size presets
+        preset_frame = tk.Frame(settings_frame)
+        preset_frame.grid(row=3, column=0, columnspan=2, sticky="ew", padx=5, pady=(0, 5))
+        tk.Button(preset_frame, text="작게 (800×600)", command=lambda: self.set_geometry_preset(800, 600)).pack(side=tk.LEFT, expand=True, fill=tk.X)
+        tk.Button(preset_frame, text="기본 (1200×800)", command=lambda: self.set_geometry_preset(1200, 800)).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(5, 0))
 
         clipboard_history_frame = ClipboardFrame(left_frame, app=self, clipboard_service=self.clipboard_service)
         clipboard_history_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
@@ -101,6 +118,9 @@ class Application(BaseTk):
         notebook.add(launcher_app_frame, text="작업 공간")
         notebook.add(formatter_app_frame, text="형식 변환")
         notebook.add(template_app_frame, text="템플릿")
+        # Keep reference for tab change handling
+        self.notebook = notebook
+        self.notebook.bind('<<NotebookTabChanged>>', self._on_tab_changed)
 
         # Start background services
         self.clipboard_service.start_monitoring()
@@ -240,6 +260,79 @@ class Application(BaseTk):
             self.config_service.set('tesseract_cmd_path', filepath)
             self.update_status("Tesseract 경로가 지정되었습니다. OCR을 다시 시도하세요.")
             messagebox.showinfo("설정 완료", "Tesseract 경로가 지정되었습니다. OCR 기능을 다시 시도하세요.")
+    # --- Window controls ---
+    def _restore_window_settings(self):
+        try:
+            geom = self.config_service.get('window_geometry')
+            if geom:
+                self.geometry(geom)
+                self._last_normal_geometry = geom
+            topmost = bool(self.config_service.get('window_topmost') or False)
+            self.attributes('-topmost', topmost)
+            fullscreen = bool(self.config_service.get('window_fullscreen') or False)
+            if fullscreen:
+                self.attributes('-fullscreen', True)
+        except Exception:
+            pass
+        # Save on close
+        self.protocol('WM_DELETE_WINDOW', self._on_close)
+
+    def _on_close(self):
+        try:
+            is_full = bool(self.attributes('-fullscreen')) if hasattr(self, 'attributes') else False
+            geom = self._last_normal_geometry if is_full and self._last_normal_geometry else self.geometry()
+            self.config_service.set('window_geometry', geom)
+            self.config_service.set('window_topmost', bool(self.attributes('-topmost')))
+            self.config_service.set('window_fullscreen', is_full)
+        except Exception:
+            pass
+        finally:
+            self.destroy()
+
+    def set_geometry_preset(self, w: int, h: int):
+        try:
+            self.attributes('-fullscreen', False)
+            self.fullscreen_var.set(False)
+        except Exception:
+            pass
+        self.geometry(f"{int(w)}x{int(h)}")
+        self._last_normal_geometry = self.geometry()
+        self.config_service.set('window_geometry', self._last_normal_geometry)
+
+    def toggle_topmost(self):
+        val = bool(self.topmost_var.get())
+        try:
+            self.attributes('-topmost', val)
+        except Exception:
+            pass
+        self.config_service.set('window_topmost', val)
+
+    def toggle_fullscreen(self):
+        val = bool(self.fullscreen_var.get())
+        try:
+            if val:
+                self._last_normal_geometry = self.geometry()
+            self.attributes('-fullscreen', val)
+        except Exception:
+            pass
+        self.config_service.set('window_fullscreen', val)
+
+    def _on_tab_changed(self, event=None):
+        try:
+            tab_text = self.notebook.tab(self.notebook.select(), 'text')
+        except Exception:
+            return
+        minsize_map = {
+            '할 일': (900, 600),
+            '작업 공간': (1000, 700),
+            '형식 변환': (900, 600),
+            '템플릿': (900, 600),
+        }
+        w, h = minsize_map.get(tab_text, (800, 600))
+        try:
+            self.minsize(w, h)
+        except Exception:
+            pass
 
     # --- Drag & Drop ---
     def _enable_dnd(self):
