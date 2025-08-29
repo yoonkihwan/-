@@ -151,7 +151,7 @@ class Application(tk.Tk):
         if "오류:" in extracted_text:
             messagebox.showerror("OCR 실패", extracted_text)
         else:
-            self.show_ocr_result2(extracted_text)
+            self.show_ocr_result(extracted_text)
         self.update_status("OCR 완료")
 
     def show_ocr_result(self, text):
@@ -171,7 +171,7 @@ class Application(tk.Tk):
         copy_button = tk.Button(result_window, text="클립보드에 복사", command=copy_to_clipboard)
         copy_button.pack(pady=5)
 
-    def show_ocr_result2(self, text):
+    def show_ocr_result(self, text):
         result_window = tk.Toplevel(self)
         result_window.title("OCR 결과")
         result_window.geometry("400x360")
