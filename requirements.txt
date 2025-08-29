@@ -2,3 +2,4 @@ pyperclip
 mss
 Pillow
 pytesseract
+tkinterdnd2

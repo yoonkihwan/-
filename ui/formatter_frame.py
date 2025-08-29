@@ -1,11 +1,12 @@
 import tkinter as tk
 from tkinter import ttk
 
+
 class FormatterFrame(tk.Frame):
     def __init__(self, parent, formatter_service, app):
         super().__init__(parent)
         self.formatter_service = formatter_service
-        self.app = app # 상태 메시지 및 클립보드 사용을 위함
+        self.app = app  # 상태 메시지/클립보드 사용
 
         self.create_widgets()
 
@@ -14,21 +15,21 @@ class FormatterFrame(tk.Frame):
         main_pane = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
         main_pane.pack(fill=tk.BOTH, expand=True)
 
-        # 입력 프레임
+        # 입력 패널
         input_frame = ttk.Frame(main_pane, padding=5)
         tk.Label(input_frame, text="입력", font=('Helvetica', 10, 'bold')).pack(anchor=tk.W)
         self.input_text = tk.Text(input_frame, wrap=tk.WORD, height=10, width=40)
         self.input_text.pack(fill=tk.BOTH, expand=True)
         main_pane.add(input_frame, weight=1)
 
-        # 출력 프레임
+        # 출력 패널
         output_frame = ttk.Frame(main_pane, padding=5)
         tk.Label(output_frame, text="결과", font=('Helvetica', 10, 'bold')).pack(anchor=tk.W)
         self.output_text = tk.Text(output_frame, wrap=tk.WORD, height=10, width=40)
         self.output_text.pack(fill=tk.BOTH, expand=True)
         main_pane.add(output_frame, weight=1)
 
-        # 컨트롤 프레임
+        # 컨트롤 패널
         control_frame = tk.Frame(self, pady=5)
         control_frame.pack(fill=tk.X)
 
@@ -66,4 +67,5 @@ class FormatterFrame(tk.Frame):
         if output:
             self.app.clipboard_clear()
             self.app.clipboard_append(output)
-            self.app.update_status("결과가 클립보드에 복사되었습니다.")
+            self.app.update_status("결과가 클립보드로 복사되었습니다")
+
