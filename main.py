@@ -22,6 +22,7 @@ from ui.launcher_frame import LauncherFrame
 from ui.formatter_frame import FormatterFrame
 from ui.template_frame import TemplateFrame
 from ui.translator_frame import TranslatorFrame
+from ui.theme_service import ThemeService
 
 try:
     # 선택적: OS 드래그앤드롭 지원
@@ -37,6 +38,13 @@ except Exception:
 class Application(BaseTk):
     def __init__(self):
         super().__init__()
+        # Theme/Scaling: Light Yeti by default
+        self.theme_service = ThemeService()
+        self._dark_mode = True  # 기본 다크 모드 선호
+        try:
+            self.theme_service.apply(self, mode="dark")
+        except Exception:
+            pass
         self.title("업무 프로그램")
         self.geometry("1000x700")
         # Window state variables
@@ -64,7 +72,9 @@ class Application(BaseTk):
         self.clock_label.pack(side=tk.LEFT)
         self.update_clock()
 
-        self.status_label = tk.Label(top_frame, text="", font=('Helvetica', 10), fg="blue")
+        # Light/Dark toggle button (ThemeService)
+        tk.Button(top_frame, text="Light/Dark", command=self.toggle_theme).pack(side=tk.RIGHT, padx=(6, 0))
+        self.status_label = tk.Label(top_frame, text="", font=('Helvetica', 10))
         self.status_label.pack(side=tk.RIGHT)
 
         bottom_frame = tk.Frame(self)
@@ -127,6 +137,13 @@ class Application(BaseTk):
         self.notebook = notebook
         self.notebook.bind('<<NotebookTabChanged>>', self._on_tab_changed)
 
+        # Apply theme again after all widgets are created (ensures tk palette applied)
+        try:
+            if hasattr(self, "theme_service") and self.theme_service:
+                self.theme_service.apply(self, mode="dark" if getattr(self, "_dark_mode", False) else "light")
+        except Exception:
+            pass
+
         # Start background services
         self.clipboard_service.start_monitoring()
 
@@ -146,6 +163,16 @@ class Application(BaseTk):
     def update_status(self, text: str):
         self.status_label.config(text=str(text))
         self.after(5000, lambda: self.status_label.config(text=""))
+
+    def toggle_theme(self):
+        """라이트/다크 테마 전환."""
+        try:
+            self._dark_mode = not getattr(self, "_dark_mode", False)
+            mode = "dark" if self._dark_mode else "light"
+            if hasattr(self, "theme_service") and self.theme_service:
+                self.theme_service.apply(self, mode=mode)
+        except Exception:
+            pass
 
     # --- Screenshot & OCR ---
     def capture_fullscreen(self):
