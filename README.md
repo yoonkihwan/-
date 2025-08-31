@@ -15,4 +15,7 @@
 - 실행: `python main.py`
 - OCR 사용 시 Tesseract 설치 필요: https://github.com/UB-Mannheim/tesseract/wiki
 
+단축키
+- Ctrl+Shift+Space: 미니 플로팅바 표시/숨김
+
 세부 기능 설명, 폴더 구조, 데이터베이스, 문제 해결은 `WORKSPACE_MANUAL.md`를 확인하세요.

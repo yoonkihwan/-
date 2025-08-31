@@ -10,7 +10,7 @@
 
 ## 2) 기술 스택
 - 언어: Python 3.9+
-- UI: tkinter
+- UI: tkinter(+ ttkbootstrap)
 - DB: SQLite (`todos.db`, `config.db`)
 - 기타: `mss`, `Pillow`, `pytesseract`, `pyperclip`
 
@@ -19,7 +19,7 @@
 - `repositories/`: DB 접근(CRUD, 마이그레이션 포함). 비즈니스 로직 금지
 - `services/`: 비즈니스 로직/도메인 규칙 수행. UI/DB 세부사항 모름
 - `ui/`: 화면, 이벤트 바인딩, 사용자 상호작용. 비즈니스는 서비스에 위임
-- `main.py`: 앱 조립과 서비스 초기화, 탭 구성
+- `main.py`: 앱 조립과 서비스 초기화, 화면 구성
 
 ## 4) 핵심 설계 원칙(SOLID)
 - SRP(단일 책임): UI, 서비스, 저장소, 모델 책임을 엄격히 분리한다.
@@ -41,7 +41,7 @@
 - 테이블 생성: 앱 시작 시 존재하지 않으면 생성.
 - 점진적 마이그레이션: 
   - `ALTER TABLE ... ADD COLUMN`은 idempotent하게 시도하고 이미 존재 시 무시한다. (예: `repositories/todo_repository.py`의 `TodoRepository._migrate()`)
-  - 스키마 재작성 필요한 경우 임시 테이블로 rename→신규 생성→데이터 복사→원본 삭제 패턴을 사용한다. (예: `repositories/launcher_repository.py`의 `LauncherRepository.upgrade_schema()`가 해당)
+  - 스키마 재작성 필요한 경우 임시 테이블로 rename→신규 생성→데이터 복사→원본 삭제 패턴을 사용한다. (예: `repositories/launcher_repository.py`의 `LauncherRepository.upgrade_schema()`)
 - 데이터 보존: 파괴적 변경 전엔 백업 권장. 마이그레이션은 가능한 한 자동화한다.
 
 ## 7) 작업 원칙(프로세스)
@@ -61,10 +61,9 @@
 - [ ] Docstring/타입힌트/가독성 확인
 - [ ] OS 분기 및 경로 처리 안전성
 
-## 9) 보안·안전
-- 파일/프로세스 실행은 사용자의 명시적 동작을 통해서만 수행한다.
-- 외부 경로/URL 실행 전 유효성·존재 확인을 우선한다.
-- 민감 정보는 코드/문서에 하드코딩하지 않는다.
+## 9) 인코딩/EOL 정책
+- 모든 텍스트 파일은 UTF-8 인코딩, LF 줄바꿈으로 통일한다.
+- `.editorconfig`와 `.gitattributes`로 정책을 강제한다.
 
 ## 10) 참고
 - 사용자/운영 문서: `WORKSPACE_MANUAL.md`
