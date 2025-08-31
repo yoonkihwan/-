@@ -105,30 +105,30 @@ class Application(BaseTk):
         # Home page: move former left widgets here
         home = tk.Frame(content)
         # Quick actions
-        screenshot_frame = tk.LabelFrame(home, text="?ㅽ겕由곗꺑 & OCR")
+        screenshot_frame = tk.LabelFrame(home, text="스크린샷 & OCR")
         screenshot_frame.pack(fill=tk.X, pady=(0, 10))
-        self._btn(screenshot_frame, "?꾩껜 ?붾㈃ 罹≪쿂", self.capture_fullscreen, style="info").pack(fill=tk.X, padx=5, pady=5)
-        self._btn(screenshot_frame, "?곸뿭 ?좏깮 罹≪쿂", self.capture_region, style="secondary").pack(fill=tk.X, padx=5, pady=5)
-        self._btn(screenshot_frame, "?곸뿭 罹≪쿂 ??OCR", self.capture_and_ocr, style="primary").pack(fill=tk.X, padx=5, pady=5)
+        self._btn(screenshot_frame, "전체 화면 캡처", self.capture_fullscreen, style="info").pack(fill=tk.X, padx=5, pady=5)
+        self._btn(screenshot_frame, "영역 선택 캡처", self.capture_region, style="secondary").pack(fill=tk.X, padx=5, pady=5)
+        self._btn(screenshot_frame, "영역 캡처 + OCR", self.capture_and_ocr, style="primary").pack(fill=tk.X, padx=5, pady=5)
 
-        settings_frame = tk.LabelFrame(home, text="?ㅼ젙")
+        settings_frame = tk.LabelFrame(home, text="설정")
         settings_frame.pack(fill=tk.X, pady=10)
         settings_frame.columnconfigure(0, weight=1)
         settings_frame.columnconfigure(1, weight=1)
-        self._btn(settings_frame, "?대뜑 蹂寃?, self.change_screenshot_directory, style="secondary").grid(row=0, column=0, sticky="ew", padx=5, pady=5)
-        self._btn(settings_frame, "?대뜑 ?닿린", self.open_screenshot_directory, style="secondary").grid(row=0, column=1, sticky="ew", padx=5, pady=5)
-        self._btn(settings_frame, "Tesseract 寃쎈줈 吏??, self.set_tesseract_path, style="warning").grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+        self._btn(settings_frame, "폴더 변경", self.change_screenshot_directory, style="secondary").grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+        self._btn(settings_frame, "폴더 열기", self.open_screenshot_directory, style="secondary").grid(row=0, column=1, sticky="ew", padx=5, pady=5)
+        self._btn(settings_frame, "Tesseract 경로 지정", self.set_tesseract_path, style="warning").grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
         # Window options: Always on Top / Fullscreen
         self.topmost_var = tk.BooleanVar(value=bool(self.config_service.get('window_topmost') or False))
         self.fullscreen_var = tk.BooleanVar(value=bool(self.config_service.get('window_fullscreen') or False))
         opt_frame = tk.Frame(settings_frame)
         opt_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=5, pady=(0, 5))
-        tk.Checkbutton(opt_frame, text="??긽 ??, variable=self.topmost_var, command=self.toggle_topmost).pack(side=tk.LEFT)
-        tk.Checkbutton(opt_frame, text="?꾩껜?붾㈃", variable=self.fullscreen_var, command=self.toggle_fullscreen).pack(side=tk.LEFT, padx=(10, 0))
+        tk.Checkbutton(opt_frame, text="항상 위", variable=self.topmost_var, command=self.toggle_topmost).pack(side=tk.LEFT)
+        tk.Checkbutton(opt_frame, text="전체화면", variable=self.fullscreen_var, command=self.toggle_fullscreen).pack(side=tk.LEFT, padx=(10, 0))
         # Size presets
         preset_frame = tk.Frame(settings_frame)
         preset_frame.grid(row=3, column=0, columnspan=2, sticky="ew", padx=5, pady=(0, 5))
-        tk.Button(preset_frame, text="?묎쾶 (800횞600)", command=lambda: self.set_geometry_preset(800, 600)).pack(side=tk.LEFT, expand=True, fill=tk.X)
+        tk.Button(preset_frame, text="작게 (800×600)", command=lambda: self.set_geometry_preset(800, 600)).pack(side=tk.LEFT, expand=True, fill=tk.X)
         tk.Button(preset_frame, text="湲곕낯 (1200횞800)", command=lambda: self.set_geometry_preset(1200, 800)).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(5, 0))
         # Clipboard history
         clipboard_history_frame = ClipboardFrame(home, app=self, clipboard_service=self.clipboard_service)
@@ -155,12 +155,12 @@ class Application(BaseTk):
 
         # Nav Rail buttons
         nav_items = [
-            ('home', '?룧 ??),
-            ('todo', '??????),
-            ('workspace', '?㎛ ?묒뾽 怨듦컙'),
-            ('formatter', '?? ?뺤떇 蹂??),
-            ('template', '?뱷 ?쒗뵆由?),
-            ('translate', '?뙋 踰덉뿭'),
+            ('home', '🏠 홈'),
+            ('todo', '✅ 할 일'),
+            ('workspace', '🧭 작업 공간'),
+            ('formatter', '🔀 형식 변환'),
+            ('template', '📝 템플릿'),
+            ('translate', '🌐 번역'),
         ]
         self._nav_buttons = {}
         for key, label in nav_items:
@@ -201,10 +201,10 @@ class Application(BaseTk):
             self._enable_dnd()
         else:
             # 媛?????ㅼ튂 ?덈궡???곹깭?쒖떆濡쒕쭔 ?쒓났
-            self.update_status("Drag&Drop 鍮꾪솢?? pip install tkinterdnd2")
+            self.update_status("Drag&Drop 비활성: pip install tkinterdnd2")
 
     def show_page(self, key: str):
-        """醫뚯륫 ?ㅻ퉬濡??좏깮???섏씠吏瑜??쒖떆?쒕떎."""
+        """좌측 네비로 선택된 페이지를 표시한다."""
         try:
             for k, f in getattr(self, 'page_frames', {}).items():
                 try:
@@ -323,11 +323,11 @@ class Application(BaseTk):
         try:
             filepath = self.screenshot_service.capture_region()
             if filepath:
-                self.update_status(f"?ㅽ겕由곗꺑 ??? {filepath}")
+                self.update_status(f"스크린샷 저장: {filepath}")
             else:
-                self.update_status("罹≪쿂媛 痍⑥냼?섏뿀?듬땲??)
+                self.update_status("캡처가 취소되었습니다")
         except Exception as e:
-            messagebox.showerror("罹≪쿂 ?ㅽ뙣", f"?ㅻ쪟 諛쒖깮: {e}")
+            messagebox.showerror("캡처 실패", f"오류 발생: {e}")
 
     def capture_and_ocr(self):
         try:
@@ -340,13 +340,13 @@ class Application(BaseTk):
         try:
             filepath = self.screenshot_service.capture_region()
             if filepath:
-                self.update_status(f"?ㅽ겕由곗꺑 ??? {filepath}")
+                self.update_status(f"스크린샷 저장: {filepath}")
                 if ocr_after:
                     self.run_ocr(filepath)
             else:
-                self.update_status("罹≪쿂媛 痍⑥냼?섏뿀?듬땲??)
+                self.update_status("캡처가 취소되었습니다")
         except Exception as e:
-            messagebox.showerror("罹≪쿂 ?ㅽ뙣", f"?ㅻ쪟 諛쒖깮: {e}")
+            messagebox.showerror("캡처 실패", f"오류 발생: {e}")
         finally:
             try:
                 self.wm_state('normal')
@@ -356,9 +356,9 @@ class Application(BaseTk):
     def _execute_fullscreen_capture(self):
         try:
             filepath = self.screenshot_service.capture_fullscreen()
-            self.update_status(f"?ㅽ겕由곗꺑 ?꾨즺: {filepath}")
+            self.update_status(f"스크린샷 완료: {filepath}")
         except Exception as e:
-            messagebox.showerror("罹≪쿂 ?ㅽ뙣", f"?ㅻ쪟 諛쒖깮: {e}")
+            messagebox.showerror("캡처 실패", f"오류 발생: {e}")
         finally:
             try:
                 self.wm_state('normal')
@@ -366,15 +366,15 @@ class Application(BaseTk):
                 pass
 
     def run_ocr(self, filepath):
-        self.update_status("臾몄옄 ?몄떇 以?..")
+        self.update_status("OCR 실행 중...")
         self.ocr_service = OCRService(tesseract_cmd_path=self.config_service.get('tesseract_cmd_path'))
         extracted_text = self.ocr_service.extract_text_from_image(filepath)
         # 湲곗〈 硫붿떆吏????명솚???꾪빐 '?ㅻ쪟:' ?먮뒗 源⑥쭊 '?占쎈쪟:' 紐⑤몢 媛먯?
-        if (isinstance(extracted_text, str) and (extracted_text.startswith("?ㅻ쪟:") or extracted_text.startswith("?占쎈쪟:"))):
-            messagebox.showerror("OCR ?ㅽ뙣", extracted_text)
+        if isinstance(extracted_text, str) and extracted_text.strip().lower().startswith("오류:"):
+            messagebox.showerror("OCR 실패", extracted_text)
         else:
             self.show_ocr_result(extracted_text)
-        self.update_status("OCR ?꾨즺")
+        self.update_status("OCR 완료")
 
     def show_ocr_result(self, text):
         result_window = tk.Toplevel(self)
@@ -391,34 +391,34 @@ class Application(BaseTk):
         def copy_to_clipboard():
             self.clipboard_clear()
             self.clipboard_append(text_widget.get("1.0", tk.END))
-            self.update_status("?대┰蹂대뱶濡?蹂듭궗?덉뒿?덈떎")
+            self.update_status("클립보드에 복사했습니다")
 
         def add_to_todo():
             content = text_widget.get("1.0", tk.END)
             if not content.strip():
-                messagebox.showwarning("異붽? ?ㅽ뙣", "異붽????댁슜???놁뒿?덈떎.")
+                messagebox.showwarning("추가 실패", "추가할 내용이 없습니다.")
                 return
             if hasattr(self.todo_service, 'add_from_text'):
                 count = self.todo_service.add_from_text(content)
-                messagebox.showinfo("??ぉ 異붽?", f"{count}媛???ぉ??異붽??덉뒿?덈떎.")
+                messagebox.showinfo("TODO 추가", f"{count}건 추가했습니다.")
             else:
                 self.todo_service.add_todo(content.strip())
-                messagebox.showinfo("??ぉ 異붽?", "1媛???ぉ??異붽??덉뒿?덈떎.")
+                messagebox.showinfo("TODO 추가", "1건 추가했습니다.")
             if hasattr(self, 'todo_frame'):
                 self.todo_frame.refresh_todos()
 
-        tk.Button(btns, text="?대┰蹂대뱶 蹂듭궗", command=copy_to_clipboard).pack(side=tk.LEFT, padx=5)
-        tk.Button(btns, text="???쇰줈 異붽?", command=add_to_todo).pack(side=tk.LEFT, padx=5)
+        tk.Button(btns, text="클립보드 복사", command=copy_to_clipboard).pack(side=tk.LEFT, padx=5)
+        tk.Button(btns, text="할 일로 추가", command=add_to_todo).pack(side=tk.LEFT, padx=5)
 
     # --- Settings ---
     def change_screenshot_directory(self):
         new_dir = filedialog.askdirectory(
-            title="?ㅽ겕由곗꺑 ????대뜑 ?좏깮",
+            title="스크린샷 저장 폴더 선택",
             initialdir=self.config_service.get("screenshot_save_dir")
         )
         if new_dir:
             self.config_service.set("screenshot_save_dir", new_dir)
-            self.update_status("?ㅽ겕由곗꺑 ????대뜑媛 蹂寃쎈릺?덉뒿?덈떎")
+            self.update_status("스크린샷 저장 폴더가 변경되었습니다")
 
     def open_screenshot_directory(self):
         path = self.config_service.get("screenshot_save_dir")
@@ -430,17 +430,17 @@ class Application(BaseTk):
             else:  # Linux
                 subprocess.run(["xdg-open", path], check=True)
         except Exception as e:
-            messagebox.showerror("?대뜑 ?닿린 ?ㅽ뙣", f"?대뜑瑜??????놁뒿?덈떎: {e}")
+            messagebox.showerror("폴더 열기 실패", f"폴더를 열지 못했습니다: {e}")
 
     def set_tesseract_path(self):
         filepath = filedialog.askopenfilename(
-            title="tesseract.exe ?뚯씪???좏깮?섏꽭??,
+            title="tesseract.exe 파일을 선택하세요",
             filetypes=[("Executable files", "*.exe")]
         )
         if filepath:
             self.config_service.set('tesseract_cmd_path', filepath)
-            self.update_status("Tesseract 寃쎈줈媛 吏?뺣릺?덉뒿?덈떎. OCR???ㅼ떆 ?쒕룄?섏꽭??")
-            messagebox.showinfo("?ㅼ젙 ?꾨즺", "Tesseract 寃쎈줈媛 吏?뺣릺?덉뒿?덈떎. OCR 湲곕뒫???ㅼ떆 ?쒕룄?섏꽭??")
+            self.update_status("Tesseract 경로가 지정되었습니다. OCR 기능을 사용해보세요")
+            messagebox.showinfo("설정 완료", "Tesseract 경로가 지정되었습니다. OCR 기능을 사용해보세요")
     # --- Window controls ---
     def _restore_window_settings(self):
         try:
@@ -504,11 +504,11 @@ class Application(BaseTk):
         except Exception:
             return
         minsize_map = {
-            '????: (900, 600),
-            '?묒뾽 怨듦컙': (1000, 700),
-            '?뺤떇 蹂??: (900, 600),
-            '?쒗뵆由?: (900, 600),
-            '踰덉뿭': (900, 600),
+            '할 일': (900, 600),
+            '작업 공간': (1000, 700),
+            '형식 변환': (900, 600),
+            '템플릿': (900, 600),
+            '번역': (900, 600),
         }
         w, h = minsize_map.get(tab_text, (800, 600))
         try:
@@ -522,85 +522,83 @@ class Application(BaseTk):
             # 猷⑦듃???쒕∼ ?깅줉 (?띿뒪???뚯씪 紐⑤몢)
             self.drop_target_register(DND_FILES, DND_TEXT)
             self.dnd_bind('<<Drop>>', self._on_drop_event)
-            self.update_status("Drag&Drop ?ъ슜 媛?? ?띿뒪???뚯씪 ?쒕∼")
+            self.update_status("Drag&Drop 사용 가능: 텍스트/파일 드롭")
         except Exception as e:
-            self.update_status(f"DnD ?쒖꽦???ㅽ뙣: {e}")
+            self.update_status(f"DnD 활성화 실패: {e}")
 
     def _on_drop_event(self, event):
         data = event.data or ''
         text_payload = ''
         paths = []
         try:
-            # ?뚯씪 ?쒕∼ ?뺤떇: Tcl list ??splitlist濡??덉쟾 ?뚯떛
+            # 파일 드롭 형식: Tcl list splitlist로 변환 처리
             if event.pattern == '<<Drop>>' and (data.startswith('{') or os.path.exists(data.split(' ')[0])):
                 try:
                     paths = list(self.tk.splitlist(data))
                 except Exception:
-                    # 怨듬갚 ?ы븿 寃쎈줈 ???덉쇅 ??蹂댁닔??遺꾨━
                     paths = [p.strip('{}') for p in data.split()]
+                    # 공백 포함 경로 예외 보수: 분리
         except Exception:
             pass
 
         if paths:
             # ?뚯씪 ?댁슜???쎌뼱 ?띿뒪?몃줈 ?⑹튂湲??띿뒪???뚯씪 ?곗꽑, ?ㅽ뙣 ??寃쎈줈濡??泥?
-            parts = []
+            # 파일 내용이거나 경로 문자열로 파츠 구성
             for p in paths:
                 part = self._read_text_best_effort(p)
                 if part is None:
                     parts.append(p)  # ?띿뒪?몃줈 紐??쎌쑝硫?寃쎈줈瑜?洹몃?濡??ъ슜
-                else:
+                    parts.append(p)  # 경로 그대로 사용
                     parts.append(part)
             text_payload = "\n\n".join(parts)
         else:
             # ?쒖닔 ?띿뒪???쒕∼
             text_payload = str(data)
-
+            # 텍스트 드롭
         text_payload = (text_payload or '').strip()
         if not text_payload:
             self.update_status("?쒕∼???곗씠?곌? ?놁뒿?덈떎")
             return
-
-        # ????좏깮: ???щ몢) / ?꾨땲???쒗뵆由? / 痍⑥냼
+            self.update_status("드롭한 데이터가 비어 있습니다")
+        # 처리 선택: 예(할 일) / 아니오(템플릿) / 취소
         choice = messagebox.askyesnocancel(
-            "?쒕∼ 泥섎━",
-            "?쒕∼???댁슜??Todo濡?異붽??좉퉴??\n?꾨땲?ㅻ? ?좏깮?섎㈃ ?쒗뵆由우쑝濡???ν빀?덈떎.")
+            "드롭 처리",
+            "드롭한 내용을 Todo로 추가할까요?\n아니오를 선택하면 템플릿으로 저장합니다.")
         if choice is None:
-            self.update_status("?쒕∼ 泥섎━ 痍⑥냼")
+            self.update_status("드롭 처리 취소")
             return
         if choice:  # Todo
             count = 0
             if hasattr(self.todo_service, 'add_from_text'):
                 count = self.todo_service.add_from_text(text_payload)
             else:
-                # 以??⑥쐞濡?異붽?
+                # 한 줄씩 추가
                 lines = [ln.strip() for ln in text_payload.splitlines() if ln.strip()]
                 for ln in lines:
                     t = self.todo_service.add_todo(ln)
                     if t:
                         count += 1
-            self.update_status(f"Todo {count}媛?異붽? ?꾨즺")
+            self.update_status(f"Todo {count}건 추가 완료")
             if hasattr(self, 'todo_frame'):
                 self.todo_frame.refresh_todos()
         else:  # Template
-            title = simpledialog.askstring("?쒗뵆由??쒕ぉ", "?쒗뵆由??쒕ぉ???낅젰?섏꽭??", parent=self)
+            title = simpledialog.askstring("템플릿 제목", "템플릿 제목을 입력하세요", parent=self)
             if not title:
-                self.update_status("?쒗뵆由??앹꽦 痍⑥냼")
+                self.update_status("템플릿 생성 취소")
                 return
             new_id = self.template_service.add_template(title, text_payload)
             if not new_id:
-                messagebox.showerror("異붽? ?ㅽ뙣", "媛숈? ?대쫫???쒗뵆由우씠 ?대? 議댁옱?⑸땲??")
+                messagebox.showerror("추가 실패", "같은 이름의 템플릿이 이미 존재합니다")
             else:
-                self.update_status("?쒗뵆由?異붽? ?꾨즺")
-
-    def _read_text_best_effort(self, path: str):
+                self.update_status("템플릿 추가 완료")
         try:
             if not os.path.isfile(path):
                 return None
             # ?띿뒪??湲곕컲 ?뺤옣???곗꽑 泥섎━
-            text_exts = {'.txt', '.md', '.csv', '.tsv', '.log', '.json', '.yaml', '.yml'}
+            # 텍스트 파일 우선 처리
             ext = os.path.splitext(path)[1].lower()
             if ext not in text_exts:
-                # 鍮꾪뀓?ㅽ듃濡?媛꾩＜
+                # 비텍스트로 간주
                 return None
             for enc in ('utf-8', 'utf-8-sig', 'cp949', 'euc-kr', 'latin-1'):
                 try:
