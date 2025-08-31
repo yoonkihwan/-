@@ -1,5 +1,6 @@
 import tkinter as tk
 from services.clipboard_service import ClipboardService
+from ui.scroll_util import bind_mousewheel
 
 
 class ClipboardFrame(tk.Frame):
@@ -32,6 +33,8 @@ class ClipboardFrame(tk.Frame):
         scrollbar = tk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.history_listbox.yview)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.history_listbox.config(yscrollcommand=scrollbar.set)
+        # 마우스 휠 스크롤
+        bind_mousewheel(self.history_listbox)
 
     def refresh_history(self):
         """클립보드 히스토리 목록을 새로고침"""

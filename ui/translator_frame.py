@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from ui.scroll_util import bind_mousewheel
 
 
 class TranslatorFrame(tk.Frame):
@@ -54,12 +55,14 @@ class TranslatorFrame(tk.Frame):
         tk.Label(left, text='입력', font=('Helvetica', 10, 'bold')).pack(anchor=tk.W)
         self.input_text = tk.Text(left, wrap=tk.WORD, height=12)
         self.input_text.pack(fill=tk.BOTH, expand=True)
+        bind_mousewheel(self.input_text)
         pane.add(left, weight=1)
 
         right = ttk.Frame(pane, padding=5)
         tk.Label(right, text='결과', font=('Helvetica', 10, 'bold')).pack(anchor=tk.W)
         self.output_text = tk.Text(right, wrap=tk.WORD, height=12)
         self.output_text.pack(fill=tk.BOTH, expand=True)
+        bind_mousewheel(self.output_text)
         pane.add(right, weight=1)
 
         # Detected label

@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from ui.scroll_util import bind_mousewheel
 
 
 class TemplateFrame(tk.Frame):
@@ -21,6 +22,8 @@ class TemplateFrame(tk.Frame):
         self.template_list = tk.Listbox(list_frame)
         self.template_list.pack(fill=tk.BOTH, expand=True)
         self.template_list.bind("<<ListboxSelect>>", self.on_template_select)
+        # 마우스 휠 스크롤
+        bind_mousewheel(self.template_list)
         pane.add(list_frame, weight=1)
 
         # 오른쪽: 템플릿 내용 + 컨트롤
@@ -32,6 +35,7 @@ class TemplateFrame(tk.Frame):
 
         self.content_text = tk.Text(content_frame, wrap=tk.WORD, height=10)
         self.content_text.pack(fill=tk.BOTH, expand=True)
+        bind_mousewheel(self.content_text)
 
         button_frame = tk.Frame(content_frame)
         button_frame.pack(fill=tk.X, pady=5)

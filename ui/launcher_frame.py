@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 import os
+from ui.scroll_util import bind_mousewheel
 
 class LauncherFrame(tk.Frame):
     def __init__(self, parent, launcher_service, app):
@@ -47,6 +48,8 @@ class LauncherFrame(tk.Frame):
         self.canvas.pack(side="left", fill="both", expand=True)
         self.canvas.create_window((4, 4), window=self.item_frame, anchor="nw")
         self.item_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+        # 마우스 휠로 캔버스 스크롤 (내용 프레임에서도 동작)
+        bind_mousewheel(self.canvas, containers=[self.canvas, self.item_frame])
 
         item_btn_frame = tk.Frame(items_frame)
         item_btn_frame.pack(fill=tk.X)

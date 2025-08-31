@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import tkinter.font as tkfont
 from services.todo_service import TodoService
+from ui.scroll_util import bind_mousewheel
 
 
 class TodoFrame(tk.Frame):
@@ -52,6 +53,12 @@ class TodoFrame(tk.Frame):
         self.todo_tree.heading("content", text="내용")
         self.todo_tree.column("#0", width=60, anchor="center")
         self.todo_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # Override status header text and width to be minimal (checkbox-sized)
+        try:
+            self.todo_tree.heading("#0", text="")
+            self.todo_tree.column("#0", width=28, minwidth=24, anchor="center", stretch=False)
+        except Exception:
+            pass
         self.todo_tree.bind("<Double-1>", self.toggle_todo_status)
         # keyboard shortcuts
         self.todo_tree.bind('<Delete>', lambda e: self.delete_selected())
@@ -67,10 +74,17 @@ class TodoFrame(tk.Frame):
         # 상태별 스타일
         self.todo_tree.tag_configure('completed', font=self.strikethrough_font, foreground="#888888")
         self.todo_tree.tag_configure('pending', font=self.normal_font, foreground="#000000")
+        # Adjust colors for current theme (dark/light)
+        try:
+            self._apply_tree_tags_colors()
+        except Exception:
+            pass
 
         scrollbar = tk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.todo_tree.yview)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.todo_tree.config(yscrollcommand=scrollbar.set)
+        # 마우스 휠로 Treeview 스크롤
+        bind_mousewheel(self.todo_tree)
 
         button_frame = tk.Frame(self)
         button_frame.pack(fill=tk.X, pady=5)
@@ -78,6 +92,11 @@ class TodoFrame(tk.Frame):
         tk.Button(button_frame, text="삭제", command=self.delete_selected).pack(side=tk.RIGHT)
 
     def refresh_todos(self):
+        # Re-apply tag colors in case theme changed
+        try:
+            self._apply_tree_tags_colors()
+        except Exception:
+            pass
         for item in self.todo_tree.get_children():
             self.todo_tree.delete(item)
 
@@ -224,4 +243,29 @@ class TodoFrame(tk.Frame):
         self.todo_service.update_sort_orders(int(parent) if parent else None, ordered_ids)
         self._drag_item = None
         self._drag_parent = None
+
+    # ---- Theme helpers ----
+    def _is_dark_mode(self) -> bool:
+        try:
+            root = self.winfo_toplevel()
+            return bool(getattr(root, "_dark_mode", False))
+        except Exception:
+            return False
+
+    def _apply_tree_tags_colors(self) -> None:
+        # Ensure tree exists
+        if not hasattr(self, 'todo_tree'):
+            return
+        is_dark = self._is_dark_mode()
+        pending_fg = "#FFFFFF" if is_dark else "#000000"
+        completed_fg = "#AAAAAA" if is_dark else "#888888"
+        try:
+            self.todo_tree.tag_configure('pending', font=self.normal_font, foreground=pending_fg)
+            self.todo_tree.tag_configure('completed', font=self.strikethrough_font, foreground=completed_fg)
+        except Exception:
+            pass
+
+    def apply_theme_update(self) -> None:
+        """Public hook to re-apply colors when app theme toggles."""
+        self._apply_tree_tags_colors()
 

@@ -12,6 +12,7 @@ class ScreenshotService:
     """
     def __init__(self, config_service: ConfigService):
         self.config_service = config_service
+        self._last_region = None  # 마지막으로 선택한 캡처 영역 저장
 
     def _get_timestamp_path(self, extension=".png"):
         """타임스탬프를 기반으로 한 파일 저장 경로를 반환합니다."""
@@ -51,6 +52,25 @@ class ScreenshotService:
             sct_img = sct.grab(region)
             img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
             
+            filepath = self._get_timestamp_path()
+            img.save(filepath)
+            # 마지막 영역 기억
+            self._last_region = region
+            return filepath
+
+    def capture_last_region(self) -> str:
+        """
+        직전에 선택한 영역을 다시 캡처한다. 이전 영역이 없으면 빈 문자열 반환.
+        :return: 저장된 파일 경로 또는 빈 문자열
+        """
+        if not self._last_region:
+            return ""
+        region = self._last_region
+        if not region or region.get("width", 0) <= 0 or region.get("height", 0) <= 0:
+            return ""
+        with mss.mss() as sct:
+            sct_img = sct.grab(region)
+            img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
             filepath = self._get_timestamp_path()
             img.save(filepath)
             return filepath

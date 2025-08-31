@@ -13,7 +13,7 @@ class ThemeService:
     """
 
     LIGHT_THEME = "flatly"
-    DARK_THEME = "solar"
+    DARK_THEME = "darkly"
 
     def __init__(self) -> None:
         self._style = None  # lazy

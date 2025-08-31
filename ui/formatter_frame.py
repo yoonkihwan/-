@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from ui.scroll_util import bind_mousewheel
 
 
 class FormatterFrame(tk.Frame):
@@ -20,6 +21,7 @@ class FormatterFrame(tk.Frame):
         tk.Label(input_frame, text="입력", font=('Helvetica', 10, 'bold')).pack(anchor=tk.W)
         self.input_text = tk.Text(input_frame, wrap=tk.WORD, height=10, width=40)
         self.input_text.pack(fill=tk.BOTH, expand=True)
+        bind_mousewheel(self.input_text)
         main_pane.add(input_frame, weight=1)
 
         # 출력 패널
@@ -27,6 +29,7 @@ class FormatterFrame(tk.Frame):
         tk.Label(output_frame, text="결과", font=('Helvetica', 10, 'bold')).pack(anchor=tk.W)
         self.output_text = tk.Text(output_frame, wrap=tk.WORD, height=10, width=40)
         self.output_text.pack(fill=tk.BOTH, expand=True)
+        bind_mousewheel(self.output_text)
         main_pane.add(output_frame, weight=1)
 
         # 컨트롤 패널

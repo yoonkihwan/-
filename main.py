@@ -34,7 +34,7 @@ except Exception:
     _bttk = None
 
 try:
-    # ?좏깮?? OS ?쒕옒洹몄븻?쒕∼ 吏??
+    # 선택적 OS 드래그앤드롭 지원
     from tkinterdnd2 import DND_FILES, DND_TEXT, TkinterDnD
     BaseTk = TkinterDnD.Tk
     _DND_AVAILABLE = True
@@ -54,7 +54,7 @@ class Application(BaseTk):
             self.theme_service.apply(self, mode="dark")
         except Exception:
             pass
-        self.title("?낅Т ?꾨줈洹몃옩")
+        self.title("업무 도움 프로그램")
         self.geometry("1000x700")
         # Window state variables
         self._last_normal_geometry = None
@@ -77,7 +77,7 @@ class Application(BaseTk):
         # Top AppBar
         top_frame = tk.Frame(self)
         top_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=6)
-        tk.Label(top_frame, text="?낅Т ?꾨줈洹몃옩", font=('Malgun Gothic', 12, 'bold')).pack(side=tk.LEFT)
+        tk.Label(top_frame, text="업무 도움 프로그램", font=('Malgun Gothic', 12, 'bold')).pack(side=tk.LEFT)
         self.clock_label = tk.Label(top_frame, font=('Helvetica', 12))
         self.clock_label.pack(side=tk.RIGHT)
         if _bttk is not None:
@@ -129,7 +129,7 @@ class Application(BaseTk):
         preset_frame = tk.Frame(settings_frame)
         preset_frame.grid(row=3, column=0, columnspan=2, sticky="ew", padx=5, pady=(0, 5))
         tk.Button(preset_frame, text="작게 (800×600)", command=lambda: self.set_geometry_preset(800, 600)).pack(side=tk.LEFT, expand=True, fill=tk.X)
-        tk.Button(preset_frame, text="湲곕낯 (1200횞800)", command=lambda: self.set_geometry_preset(1200, 800)).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(5, 0))
+        tk.Button(preset_frame, text="보통 (1200x800)", command=lambda: self.set_geometry_preset(1200, 800)).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(5, 0))
         # Clipboard history
         clipboard_history_frame = ClipboardFrame(home, app=self, clipboard_service=self.clipboard_service)
         clipboard_history_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
@@ -200,7 +200,7 @@ class Application(BaseTk):
         if _DND_AVAILABLE:
             self._enable_dnd()
         else:
-            # 媛?????ㅼ튂 ?덈궡???곹깭?쒖떆濡쒕쭔 ?쒓났
+            # 가용하지 않은 경우 상태표시로만 공지
             self.update_status("Drag&Drop 비활성: pip install tkinterdnd2")
 
     def show_page(self, key: str):
@@ -284,7 +284,7 @@ class Application(BaseTk):
         self.after(5000, lambda: self.status_label.config(text=""))
 
     def toggle_theme(self):
-        """?쇱씠???ㅽ겕 ?뚮쭏 ?꾪솚."""
+        """테마 라이트/다크 전환."""
         try:
             self._dark_mode = not getattr(self, "_dark_mode", False)
             mode = "dark" if self._dark_mode else "light"
@@ -309,9 +309,9 @@ class Application(BaseTk):
         return
         try:
             filepath = self.screenshot_service.capture_fullscreen()
-            self.update_status(f"?ㅽ겕由곗꺑 ??? {filepath}")
+            self.update_status(f"스크린샷 저장: {filepath}")
         except Exception as e:
-            messagebox.showerror("罹≪쿂 ?ㅽ뙣", f"?ㅻ쪟 諛쒖깮: {e}")
+            messagebox.showerror("캡처 실패", f"오류 발생: {e}")
 
     def capture_region(self):
         try:
@@ -369,7 +369,7 @@ class Application(BaseTk):
         self.update_status("OCR 실행 중...")
         self.ocr_service = OCRService(tesseract_cmd_path=self.config_service.get('tesseract_cmd_path'))
         extracted_text = self.ocr_service.extract_text_from_image(filepath)
-        # 湲곗〈 硫붿떆吏????명솚???꾪빐 '?ㅻ쪟:' ?먮뒗 源⑥쭊 '?占쎈쪟:' 紐⑤몢 媛먯?
+        # 기존 메시지 호환: "오류:" 접두어면 실패로 간주
         if isinstance(extracted_text, str) and extracted_text.strip().lower().startswith("오류:"):
             messagebox.showerror("OCR 실패", extracted_text)
         else:
@@ -519,7 +519,7 @@ class Application(BaseTk):
     # --- Drag & Drop ---
     def _enable_dnd(self):
         try:
-            # 猷⑦듃???쒕∼ ?깅줉 (?띿뒪???뚯씪 紐⑤몢)
+            # 루트에 드롭 등록 (텍스트/파일 모두)
             self.drop_target_register(DND_FILES, DND_TEXT)
             self.dnd_bind('<<Drop>>', self._on_drop_event)
             self.update_status("Drag&Drop 사용 가능: 텍스트/파일 드롭")
@@ -536,30 +536,30 @@ class Application(BaseTk):
                 try:
                     paths = list(self.tk.splitlist(data))
                 except Exception:
-                    paths = [p.strip('{}') for p in data.split()]
                     # 공백 포함 경로 예외 보수: 분리
+                    paths = [p.strip('{}') for p in data.split()]
         except Exception:
             pass
 
         if paths:
-            # ?뚯씪 ?댁슜???쎌뼱 ?띿뒪?몃줈 ?⑹튂湲??띿뒪???뚯씪 ?곗꽑, ?ㅽ뙣 ??寃쎈줈濡??泥?
             # 파일 내용이거나 경로 문자열로 파츠 구성
+            parts = []
             for p in paths:
                 part = self._read_text_best_effort(p)
                 if part is None:
-                    parts.append(p)  # ?띿뒪?몃줈 紐??쎌쑝硫?寃쎈줈瑜?洹몃?濡??ъ슜
                     parts.append(p)  # 경로 그대로 사용
+                else:
                     parts.append(part)
             text_payload = "\n\n".join(parts)
         else:
-            # ?쒖닔 ?띿뒪???쒕∼
-            text_payload = str(data)
             # 텍스트 드롭
+            text_payload = str(data)
+
         text_payload = (text_payload or '').strip()
         if not text_payload:
-            self.update_status("?쒕∼???곗씠?곌? ?놁뒿?덈떎")
-            return
             self.update_status("드롭한 데이터가 비어 있습니다")
+            return
+
         # 처리 선택: 예(할 일) / 아니오(템플릿) / 취소
         choice = messagebox.askyesnocancel(
             "드롭 처리",
@@ -591,11 +591,13 @@ class Application(BaseTk):
                 messagebox.showerror("추가 실패", "같은 이름의 템플릿이 이미 존재합니다")
             else:
                 self.update_status("템플릿 추가 완료")
+
+    def _read_text_best_effort(self, path: str):
         try:
             if not os.path.isfile(path):
                 return None
-            # ?띿뒪??湲곕컲 ?뺤옣???곗꽑 泥섎━
-            # 텍스트 파일 우선 처리
+            # 텍스트 기반 저장 우선 처리
+            text_exts = {'.txt', '.md', '.csv', '.tsv', '.log', '.json', '.yaml', '.yml'}
             ext = os.path.splitext(path)[1].lower()
             if ext not in text_exts:
                 # 비텍스트로 간주
@@ -610,8 +612,8 @@ class Application(BaseTk):
                 return f.read()
         except Exception:
             return None
-
-
+        except Exception:
+            return None
 if __name__ == "__main__":
     app = Application()
     app.mainloop()
