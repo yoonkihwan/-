@@ -40,8 +40,8 @@
 - SQLite 파일: `todos.db`(할 일), `config.db`(워크스페이스/템플릿) 사용.
 - 테이블 생성: 앱 시작 시 존재하지 않으면 생성.
 - 점진적 마이그레이션: 
-  - `ALTER TABLE ... ADD COLUMN`은 idempotent하게 시도하고 이미 존재 시 무시한다. (예: `TodoRepository._migrate()`)
-  - 스키마 재작성 필요한 경우 임시 테이블로 rename→신규 생성→데이터 복사→원본 삭제 패턴을 사용한다. (예: `LauncherRepository.upgrade_schema()`)
+  - `ALTER TABLE ... ADD COLUMN`은 idempotent하게 시도하고 이미 존재 시 무시한다. (예: `repositories/todo_repository.py`의 `TodoRepository._migrate()`)
+  - 스키마 재작성 필요한 경우 임시 테이블로 rename→신규 생성→데이터 복사→원본 삭제 패턴을 사용한다. (예: `repositories/launcher_repository.py`의 `LauncherRepository.upgrade_schema()`가 해당)
 - 데이터 보존: 파괴적 변경 전엔 백업 권장. 마이그레이션은 가능한 한 자동화한다.
 
 ## 7) 작업 원칙(프로세스)
@@ -74,4 +74,3 @@
 ---
 
 이 문서는 저장소 내 개발 활동의 기준이며, 변경이 필요한 경우 변경 이유와 영향 범위를 명확히 한 후 갱신합니다.
-
