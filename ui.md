@@ -25,6 +25,11 @@ UI 가이드 / 디자이너스 가이드
 - 스케일별 패딩: 8(기본) / 9(>=1.25) / 10(>=1.30)
 - `Treeview` `rowheight`는 스케일에 맞춰 26~30 권장
 
+레이아웃 정책(채택)
+- 기본 레이아웃: 좌측 네비게이션 레일 + 우측 콘텐츠 스택
+- 상단 AppBar(타이틀/시계/토글) + 하단 StatusBar(토스트 메시지)
+- 홈(Home) 화면: 스크린샷/OCR/설정/클립보드의 빠른 작업 카드 배치
+
 전환 규칙(라이트/다크/밀도)
 - 진입점: `ThemeService.apply(window, mode: Literal['light','dark'])`
 - 구현: 직접 `theme_use` 호출 대신 `ui/theme_service.py`의 API를 통해 일괄 적용(누락 방지)

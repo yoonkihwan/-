@@ -28,6 +28,8 @@
   - `todo_service.py`, `screenshot_service.py`, `ocr_service.py`, `clipboard_service.py`,
     `launcher_service.py`, `formatter_service.py`, `template_service.py`, `translate_service.py`, `config_service.py`
 - `ui/`: tkinter UI 컴포넌트 (Todo/Workspace/Formatter/Template/Clipboard/Translator/Theme)
+  - 기본 레이아웃: 좌측 네비게이션 레일 + 우측 콘텐츠 스택
+  - 상단 AppBar(타이틀/시계/Light-Dark), 하단 StatusBar(토스트)
 - `config.json`: 앱 환경 설정(JSON)
 - 데이터베이스(SQLite)
   - `todos.db`: Todo 데이터(테이블 `todos`)
@@ -136,4 +138,4 @@
 
 - 의존성 설치: `pip install -r requirements.txt`
 - 실행: `python main.py`
-- 포맷 변환/템플릿/워크스페이스/스크린샷/OCR/클립보드 등은 UI 탭에서 사용
+- 포맷 변환/템플릿/워크스페이스/스크린샷/OCR/클립보드 등은 좌측 네비게이션에서 선택하여 사용
