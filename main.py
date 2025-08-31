@@ -24,6 +24,14 @@ from ui.template_frame import TemplateFrame
 from ui.translator_frame import TranslatorFrame
 from ui.theme_service import ThemeService
 
+# Optional: ttkbootstrap for colored buttons/styles
+try:
+    import ttkbootstrap as _tb
+    from ttkbootstrap import ttk as _bttk
+except Exception:
+    _tb = None
+    _bttk = None
+
 try:
     # 선택적: OS 드래그앤드롭 지원
     from tkinterdnd2 import DND_FILES, DND_TEXT, TkinterDnD
@@ -64,43 +72,51 @@ class Application(BaseTk):
         # Restore window settings (geometry/topmost/fullscreen)
         self._restore_window_settings()
 
-        # --- Main Layout ---
+        # --- Nav Rail + Content Stack Layout ---
+        # Top AppBar
         top_frame = tk.Frame(self)
-        top_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
-
+        top_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=6)
+        tk.Label(top_frame, text="업무 프로그램", font=('Malgun Gothic', 12, 'bold')).pack(side=tk.LEFT)
         self.clock_label = tk.Label(top_frame, font=('Helvetica', 12))
-        self.clock_label.pack(side=tk.LEFT)
+        self.clock_label.pack(side=tk.RIGHT)
+        if _bttk is not None:
+            _bttk.Button(top_frame, text="Light/Dark", command=self.toggle_theme, bootstyle="secondary").pack(side=tk.RIGHT, padx=(8, 10))
+        else:
+            tk.Button(top_frame, text="Light/Dark", command=self.toggle_theme).pack(side=tk.RIGHT, padx=(8, 10))
         self.update_clock()
+        ttk.Separator(self, orient='horizontal').pack(fill=tk.X)
 
-        # Light/Dark toggle button (ThemeService)
-        tk.Button(top_frame, text="Light/Dark", command=self.toggle_theme).pack(side=tk.RIGHT, padx=(6, 0))
-        self.status_label = tk.Label(top_frame, text="", font=('Helvetica', 10))
-        self.status_label.pack(side=tk.RIGHT)
+        # Middle: Left Nav + Right Content
+        middle = tk.Frame(self)
+        middle.pack(fill=tk.BOTH, expand=True)
 
-        bottom_frame = tk.Frame(self)
-        bottom_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        nav = tk.Frame(middle, width=200)
+        nav.pack(side=tk.LEFT, fill=tk.Y, padx=(10, 6), pady=10)
+        nav.pack_propagate(False)
 
-        left_frame = tk.Frame(bottom_frame, width=280)
-        left_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 10))
-        left_frame.pack_propagate(False)
+        content = tk.Frame(middle)
+        content.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10), pady=10)
+        self._content = content
 
-        right_frame = tk.Frame(bottom_frame)
-        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+        # Build pages (frames)
+        self.page_frames = {}
 
-        # --- Left Widgets ---
-        screenshot_frame = tk.LabelFrame(left_frame, text="스크린샷 & OCR")
+        # Home page: move former left widgets here
+        home = tk.Frame(content)
+        # Quick actions
+        screenshot_frame = tk.LabelFrame(home, text="스크린샷 & OCR")
         screenshot_frame.pack(fill=tk.X, pady=(0, 10))
-        tk.Button(screenshot_frame, text="전체 화면 캡처", command=self.capture_fullscreen).pack(fill=tk.X, padx=5, pady=5)
-        tk.Button(screenshot_frame, text="영역 선택 캡처", command=self.capture_region).pack(fill=tk.X, padx=5, pady=5)
-        tk.Button(screenshot_frame, text="영역 캡처 후 OCR", command=self.capture_and_ocr).pack(fill=tk.X, padx=5, pady=5)
+        self._btn(screenshot_frame, "전체 화면 캡처", self.capture_fullscreen, style="info").pack(fill=tk.X, padx=5, pady=5)
+        self._btn(screenshot_frame, "영역 선택 캡처", self.capture_region, style="secondary").pack(fill=tk.X, padx=5, pady=5)
+        self._btn(screenshot_frame, "영역 캡처 후 OCR", self.capture_and_ocr, style="primary").pack(fill=tk.X, padx=5, pady=5)
 
-        settings_frame = tk.LabelFrame(left_frame, text="설정")
+        settings_frame = tk.LabelFrame(home, text="설정")
         settings_frame.pack(fill=tk.X, pady=10)
         settings_frame.columnconfigure(0, weight=1)
         settings_frame.columnconfigure(1, weight=1)
-        tk.Button(settings_frame, text="폴더 변경", command=self.change_screenshot_directory).grid(row=0, column=0, sticky="ew", padx=5, pady=5)
-        tk.Button(settings_frame, text="폴더 열기", command=self.open_screenshot_directory).grid(row=0, column=1, sticky="ew", padx=5, pady=5)
-        tk.Button(settings_frame, text="Tesseract 경로 지정", command=self.set_tesseract_path).grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+        self._btn(settings_frame, "폴더 변경", self.change_screenshot_directory, style="secondary").grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+        self._btn(settings_frame, "폴더 열기", self.open_screenshot_directory, style="secondary").grid(row=0, column=1, sticky="ew", padx=5, pady=5)
+        self._btn(settings_frame, "Tesseract 경로 지정", self.set_tesseract_path, style="warning").grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
         # Window options: Always on Top / Fullscreen
         self.topmost_var = tk.BooleanVar(value=bool(self.config_service.get('window_topmost') or False))
         self.fullscreen_var = tk.BooleanVar(value=bool(self.config_service.get('window_fullscreen') or False))
@@ -113,29 +129,56 @@ class Application(BaseTk):
         preset_frame.grid(row=3, column=0, columnspan=2, sticky="ew", padx=5, pady=(0, 5))
         tk.Button(preset_frame, text="작게 (800×600)", command=lambda: self.set_geometry_preset(800, 600)).pack(side=tk.LEFT, expand=True, fill=tk.X)
         tk.Button(preset_frame, text="기본 (1200×800)", command=lambda: self.set_geometry_preset(1200, 800)).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(5, 0))
-
-        clipboard_history_frame = ClipboardFrame(left_frame, app=self, clipboard_service=self.clipboard_service)
+        # Clipboard history
+        clipboard_history_frame = ClipboardFrame(home, app=self, clipboard_service=self.clipboard_service)
         clipboard_history_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
 
-        # --- Right Widgets (Notebook) ---
-        notebook = ttk.Notebook(right_frame)
-        notebook.pack(fill=tk.BOTH, expand=True)
+        self.page_frames['home'] = home
 
-        todo_app_frame = TodoFrame(notebook, self.todo_service)
+        # Domain pages reuse existing frames
+        todo_app_frame = TodoFrame(content, self.todo_service)
         self.todo_frame = todo_app_frame
-        launcher_app_frame = LauncherFrame(notebook, self.launcher_service, self)
-        formatter_app_frame = FormatterFrame(notebook, self.formatter_service, self)
-        template_app_frame = TemplateFrame(notebook, self.template_service, self)
-        translator_app_frame = TranslatorFrame(notebook, self.translate_service, self)
+        self.page_frames['todo'] = todo_app_frame
 
-        notebook.add(todo_app_frame, text="할 일")
-        notebook.add(launcher_app_frame, text="작업 공간")
-        notebook.add(formatter_app_frame, text="형식 변환")
-        notebook.add(template_app_frame, text="템플릿")
-        notebook.add(translator_app_frame, text="번역")
-        # Keep reference for tab change handling
-        self.notebook = notebook
-        self.notebook.bind('<<NotebookTabChanged>>', self._on_tab_changed)
+        launcher_app_frame = LauncherFrame(content, self.launcher_service, self)
+        self.page_frames['workspace'] = launcher_app_frame
+
+        formatter_app_frame = FormatterFrame(content, self.formatter_service, self)
+        self.page_frames['formatter'] = formatter_app_frame
+
+        template_app_frame = TemplateFrame(content, self.template_service, self)
+        self.page_frames['template'] = template_app_frame
+
+        translator_app_frame = TranslatorFrame(content, self.translate_service, self)
+        self.page_frames['translate'] = translator_app_frame
+
+        # Nav Rail buttons
+        nav_items = [
+            ('home', '🏠 홈'),
+            ('todo', '✅ 할 일'),
+            ('workspace', '🧭 작업 공간'),
+            ('formatter', '🔀 형식 변환'),
+            ('template', '📝 템플릿'),
+            ('translate', '🌐 번역'),
+        ]
+        self._nav_buttons = {}
+        for key, label in nav_items:
+            if _bttk is not None:
+                btn = _bttk.Button(nav, text=label, command=lambda k=key: self.show_page(k), bootstyle="secondary")
+            else:
+                btn = tk.Button(nav, text=label, command=lambda k=key: self.show_page(k))
+            btn.pack(fill=tk.X, pady=4)
+            self._nav_buttons[key] = btn
+
+        # Bottom StatusBar
+        ttk.Separator(self, orient='horizontal').pack(fill=tk.X)
+        status_bar = tk.Frame(self)
+        status_bar.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=(4, 8))
+        self.status_label = tk.Label(status_bar, text="", font=('Helvetica', 10))
+        self.status_label.pack(side=tk.LEFT)
+
+        # Default page
+        self.show_page('home')
 
         # Apply theme again after all widgets are created (ensures tk palette applied)
         try:
@@ -154,6 +197,33 @@ class Application(BaseTk):
             # 가용 시 설치 안내는 상태표시로만 제공
             self.update_status("Drag&Drop 비활성: pip install tkinterdnd2")
 
+    def show_page(self, key: str):
+        """좌측 네비로 선택된 페이지를 표시한다."""
+        try:
+            for k, f in getattr(self, 'page_frames', {}).items():
+                try:
+                    f.pack_forget()
+                except Exception:
+                    pass
+            frame = self.page_frames.get(key) if hasattr(self, 'page_frames') else None
+            if frame:
+                frame.pack(in_=self._content, fill=tk.BOTH, expand=True)
+            # update nav button styles
+            try:
+                for k, btn in getattr(self, '_nav_buttons', {}).items():
+                    if _bttk is not None:
+                        btn.configure(bootstyle=("primary" if k == key else "secondary"))
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    # Helper to create a button with optional ttkbootstrap style
+    def _btn(self, parent, text, command, style: str = "secondary"):
+        if _bttk is not None:
+            return _bttk.Button(parent, text=text, command=command, bootstyle=style)
+        return tk.Button(parent, text=text, command=command)
+
     # --- Helpers ---
     def update_clock(self):
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -171,11 +241,23 @@ class Application(BaseTk):
             mode = "dark" if self._dark_mode else "light"
             if hasattr(self, "theme_service") and self.theme_service:
                 self.theme_service.apply(self, mode=mode)
+            # Notify frames that depend on theme colors
+            try:
+                if hasattr(self, 'todo_frame') and self.todo_frame:
+                    self.todo_frame.apply_theme_update()
+            except Exception:
+                pass
         except Exception:
             pass
 
     # --- Screenshot & OCR ---
     def capture_fullscreen(self):
+        try:
+            self.wm_state('iconic')
+        except Exception:
+            pass
+        self.after(200, self._execute_fullscreen_capture)
+        return
         try:
             filepath = self.screenshot_service.capture_fullscreen()
             self.update_status(f"스크린샷 저장: {filepath}")
@@ -183,6 +265,12 @@ class Application(BaseTk):
             messagebox.showerror("캡처 실패", f"오류 발생: {e}")
 
     def capture_region(self):
+        try:
+            self.wm_state('iconic')
+        except Exception:
+            pass
+        self.after(200, lambda: self._execute_region_capture(ocr_after=False))
+        return
         try:
             filepath = self.screenshot_service.capture_region()
             if filepath:
@@ -208,6 +296,18 @@ class Application(BaseTk):
                     self.run_ocr(filepath)
             else:
                 self.update_status("캡처가 취소되었습니다")
+        except Exception as e:
+            messagebox.showerror("캡처 실패", f"오류 발생: {e}")
+        finally:
+            try:
+                self.wm_state('normal')
+            except Exception:
+                pass
+
+    def _execute_fullscreen_capture(self):
+        try:
+            filepath = self.screenshot_service.capture_fullscreen()
+            self.update_status(f"스크린샷 완료: {filepath}")
         except Exception as e:
             messagebox.showerror("캡처 실패", f"오류 발생: {e}")
         finally:
