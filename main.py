@@ -23,7 +23,9 @@ from ui.formatter_frame import FormatterFrame
 from ui.template_frame import TemplateFrame
 from ui.translator_frame import TranslatorFrame
 from ui.theme_service import ThemeService
-from ui.floating_bar import FloatingBar
+from ui.screenshot_frame import ScreenshotFrame
+from ui.settings_frame import SettingsFrame
+from ui.home_frame import HomeFrame
 
 # Optional: ttkbootstrap for colored buttons/styles
 try:
@@ -55,7 +57,7 @@ class Application(BaseTk):
         except Exception:
             pass
         self.title("업무 도움 프로그램")
-        self.geometry("1000x700")
+        self.geometry("1200x800")
         # Window state variables
         self._last_normal_geometry = None
 
@@ -72,6 +74,27 @@ class Application(BaseTk):
 
         # Restore window settings (geometry/topmost/fullscreen)
         self._restore_window_settings()
+        # If no saved geometry, center the window at default size
+        try:
+            if not self.config_service.get('window_geometry'):
+                sw = self.winfo_screenwidth()
+                sh = self.winfo_screenheight()
+                w, h = 1200, 800
+                x = max(0, int((sw - w) / 2))
+                y = max(0, int((sh - h) / 2))
+                self.geometry(f"{w}x{h}+{x}+{y}")
+                self._last_normal_geometry = self.geometry()
+        except Exception:
+            pass
+        # Window/Startup option variables used by Settings UI
+        try:
+            self.topmost_var = tk.BooleanVar(value=bool(self.config_service.get('window_topmost') or False))
+            self.fullscreen_var = tk.BooleanVar(value=bool(self.config_service.get('window_fullscreen') or False))
+            self.autostart_var = tk.BooleanVar(value=bool(self.config_service.get('auto_start') or False))
+        except Exception:
+            self.topmost_var = tk.BooleanVar(value=False)
+            self.fullscreen_var = tk.BooleanVar(value=False)
+            self.autostart_var = tk.BooleanVar(value=False)
 
         # --- Nav Rail + Content Stack Layout ---
         # Top AppBar
@@ -95,45 +118,52 @@ class Application(BaseTk):
         nav.pack(side=tk.LEFT, fill=tk.Y, padx=(10, 6), pady=10)
         nav.pack_propagate(False)
 
-        content = tk.Frame(middle)
-        content.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10), pady=10)
+        # Scrollable content area (adapts to window size)
+        content_wrap = tk.Frame(middle)
+        content_wrap.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10), pady=10)
+        content_canvas = tk.Canvas(content_wrap, highlightthickness=0)
+        vscroll = ttk.Scrollbar(content_wrap, orient=tk.VERTICAL, command=content_canvas.yview)
+        content_canvas.configure(yscrollcommand=vscroll.set)
+        vscroll.pack(side=tk.RIGHT, fill=tk.Y)
+        content_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        content = tk.Frame(content_canvas)
+        # create window and keep refs for resize handling
+        self._content_window = content_canvas.create_window((0, 0), window=content, anchor="nw")
+        self._content_canvas = content_canvas
         self._content = content
+        # update scrollregion when content changes
+        def _on_frame_configure(_event=None):
+            try:
+                bbox = content_canvas.bbox("all")
+                if bbox:
+                    content_canvas.configure(scrollregion=bbox)
+            except Exception:
+                pass
+        content.bind("<Configure>", _on_frame_configure)
+        # match inner width to canvas width
+        def _on_canvas_configure(event):
+            try:
+                content_canvas.itemconfig(self._content_window, width=event.width)
+            except Exception:
+                pass
+        content_canvas.bind("<Configure>", _on_canvas_configure)
+        # mouse wheel scrolling
+        try:
+            from ui.scroll_util import bind_mousewheel
+            bind_mousewheel(content_canvas, containers=[content_canvas, content])
+        except Exception:
+            pass
 
         # Build pages (frames)
         self.page_frames = {}
 
-        # Home page: move former left widgets here
-        home = tk.Frame(content)
-        # Quick actions
-        screenshot_frame = tk.LabelFrame(home, text="스크린샷 & OCR")
-        screenshot_frame.pack(fill=tk.X, pady=(0, 10))
-        self._btn(screenshot_frame, "전체 화면 캡처", self.capture_fullscreen, style="info").pack(fill=tk.X, padx=5, pady=5)
-        self._btn(screenshot_frame, "영역 선택 캡처", self.capture_region, style="secondary").pack(fill=tk.X, padx=5, pady=5)
-        self._btn(screenshot_frame, "영역 캡처 + OCR", self.capture_and_ocr, style="primary").pack(fill=tk.X, padx=5, pady=5)
-
-        settings_frame = tk.LabelFrame(home, text="설정")
-        settings_frame.pack(fill=tk.X, pady=10)
-        settings_frame.columnconfigure(0, weight=1)
-        settings_frame.columnconfigure(1, weight=1)
-        self._btn(settings_frame, "폴더 변경", self.change_screenshot_directory, style="secondary").grid(row=0, column=0, sticky="ew", padx=5, pady=5)
-        self._btn(settings_frame, "폴더 열기", self.open_screenshot_directory, style="secondary").grid(row=0, column=1, sticky="ew", padx=5, pady=5)
-        self._btn(settings_frame, "Tesseract 경로 지정", self.set_tesseract_path, style="warning").grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
-        # Window options: Always on Top / Fullscreen
-        self.topmost_var = tk.BooleanVar(value=bool(self.config_service.get('window_topmost') or False))
-        self.fullscreen_var = tk.BooleanVar(value=bool(self.config_service.get('window_fullscreen') or False))
-        opt_frame = tk.Frame(settings_frame)
-        opt_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=5, pady=(0, 5))
-        tk.Checkbutton(opt_frame, text="항상 위", variable=self.topmost_var, command=self.toggle_topmost).pack(side=tk.LEFT)
-        tk.Checkbutton(opt_frame, text="전체화면", variable=self.fullscreen_var, command=self.toggle_fullscreen).pack(side=tk.LEFT, padx=(10, 0))
-        # Size presets
-        preset_frame = tk.Frame(settings_frame)
-        preset_frame.grid(row=3, column=0, columnspan=2, sticky="ew", padx=5, pady=(0, 5))
-        tk.Button(preset_frame, text="작게 (800×600)", command=lambda: self.set_geometry_preset(800, 600)).pack(side=tk.LEFT, expand=True, fill=tk.X)
-        tk.Button(preset_frame, text="보통 (1200x800)", command=lambda: self.set_geometry_preset(1200, 800)).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(5, 0))
-        # Clipboard history
-        clipboard_history_frame = ClipboardFrame(home, app=self, clipboard_service=self.clipboard_service)
-        clipboard_history_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
-
+        # Home page: dynamic by settings
+        home = HomeFrame(content, app=self)
+        self.home_frame = home
+        try:
+            home.set_sections(self.get_home_sections())
+        except Exception:
+            pass
         self.page_frames['home'] = home
 
         # Domain pages reuse existing frames
@@ -153,25 +183,37 @@ class Application(BaseTk):
         translator_app_frame = TranslatorFrame(content, self.translate_service, self)
         self.page_frames['translate'] = translator_app_frame
 
+        # New tabs
+        screenshot_app_frame = ScreenshotFrame(content, app=self)
+        self.page_frames['screenshot'] = screenshot_app_frame
+
+        settings_app_frame = SettingsFrame(content, app=self)
+        self.page_frames['settings'] = settings_app_frame
+
+        # Clipboard tab
+        clipboard_app_frame = ClipboardFrame(content, app=self, clipboard_service=self.clipboard_service)
+        self.page_frames['clipboard'] = clipboard_app_frame
         # Nav Rail buttons
         nav_items = [
-            ('home', '🏠 홈'),
-            ('todo', '✅ 할 일'),
-            ('workspace', '🧭 작업 공간'),
-            ('formatter', '🔀 형식 변환'),
-            ('template', '📝 템플릿'),
-            ('translate', '🌐 번역'),
+            ('home', '홈'),
+            ('clipboard', '클립보드'),
+            ('todo', '할 일'),
+            ('workspace', '작업 공간'),
+            ('formatter', '포맷 변환'),
+            ('template', '템플릿'),
+            ('translate', '번역'),
+            ('screenshot', '스크린샷'),
+            ('settings', '설정'),
         ]
         self._nav_buttons = {}
         for key, label in nav_items:
             if _bttk is not None:
-                btn = _bttk.Button(nav, text=label, command=lambda k=key: self.show_page(k), bootstyle="secondary")
+                btn = _bttk.Button(nav, text=label, command=lambda k=key: self.show_page(k), bootstyle='secondary')
             else:
                 btn = tk.Button(nav, text=label, command=lambda k=key: self.show_page(k))
             btn.pack(fill=tk.X, pady=4)
             self._nav_buttons[key] = btn
-
-        # Bottom StatusBar
+# Bottom StatusBar
         ttk.Separator(self, orient='horizontal').pack(fill=tk.X)
         status_bar = tk.Frame(self)
         status_bar.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=(4, 8))
@@ -180,11 +222,7 @@ class Application(BaseTk):
 
         # Default page
         self.show_page('home')
-        # Initialize floating bar after UI is ready
-        try:
-            self.after(0, self._init_floating_bar)
-        except Exception:
-            pass
+        # Floating bar does not auto-initialize; it is launched explicitly from UI
 
         # Apply theme again after all widgets are created (ensures tk palette applied)
         try:
@@ -230,50 +268,7 @@ class Application(BaseTk):
             return _bttk.Button(parent, text=text, command=command, bootstyle=style)
         return tk.Button(parent, text=text, command=command)
 
-    # --- Floating Bar integration ---
-    def _init_floating_bar(self):
-        try:
-            actions = {
-                "capture_fullscreen": {"label": "전체 캡처", "command": self.capture_fullscreen, "style": "info"},
-                "capture_region": {"label": "영역 캡처", "command": self.capture_region, "style": "secondary"},
-                "capture_and_ocr": {"label": "캡처+OCR", "command": self.capture_and_ocr, "style": "primary"},
-                "toggle_theme": {"label": "Light/Dark", "command": self.toggle_theme, "style": "secondary"},
-                "open_todo": {"label": "할 일", "command": lambda: self.show_page('todo'), "style": "secondary"},
-                "open_workspace": {"label": "작업 공간", "command": lambda: self.show_page('workspace'), "style": "secondary"},
-            }
-            selected = self.config_service.get("floating_bar_actions") or [
-                "capture_fullscreen", "capture_region", "capture_and_ocr", "toggle_theme", "open_todo"
-            ]
-            geom = self.config_service.get("floating_bar_geometry")
-            self._floating_bar = FloatingBar(
-                self,
-                actions_registry=actions,
-                selected_actions=selected,
-                geometry=geom,
-                on_close=lambda g, a: self._save_floating_bar_prefs(g, a),
-            )
-            # Shortcut
-            self.bind_all('<Control-Shift-space>', lambda e: self.toggle_floating_bar())
-        except Exception:
-            pass
-
-    def _save_floating_bar_prefs(self, geometry: str, actions: list[str]):
-        try:
-            self.config_service.set("floating_bar_geometry", geometry)
-            self.config_service.set("floating_bar_actions", list(actions))
-        except Exception:
-            pass
-
-    def toggle_floating_bar(self):
-        try:
-            if getattr(self, '_floating_bar', None) and self._floating_bar.winfo_exists():
-                self._floating_bar.withdraw() if self._floating_bar.state() == 'normal' else self._floating_bar.deiconify()
-            else:
-                self._init_floating_bar()
-        except Exception:
-            pass
-
-    # --- Helpers ---
+# --- Helpers ---
     def update_clock(self):
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.clock_label.config(text=now)
@@ -296,6 +291,28 @@ class Application(BaseTk):
                     self.todo_frame.apply_theme_update()
             except Exception:
                 pass
+        except Exception:
+            pass
+
+    # --- Home configuration ---
+    def get_home_sections(self) -> list:
+        try:
+            sections = self.config_service.get('home_sections')
+            # None이면만 기본값을 채우고, 빈 리스트([])는 사용자가 의도한 값으로 존중
+            if sections is None:
+                sections = ['clipboard', 'screenshot']
+        except Exception:
+            sections = ['clipboard']
+        return list(sections)
+
+    def set_home_sections(self, sections: list[str]):
+        try:
+            self.config_service.set('home_sections', list(sections))
+        except Exception:
+            pass
+        try:
+            if hasattr(self, 'home_frame') and self.home_frame:
+                self.home_frame.set_sections(list(sections))
         except Exception:
             pass
 
@@ -498,6 +515,40 @@ class Application(BaseTk):
             pass
         self.config_service.set('window_fullscreen', val)
 
+    # Startup (Windows) auto-run
+    def toggle_autostart(self):
+        enable = bool(self.autostart_var.get())
+        try:
+            self._set_windows_autostart(enable)
+        except Exception:
+            # non-Windows or registry access failed; keep config only
+            pass
+        try:
+            self.config_service.set('auto_start', enable)
+        except Exception:
+            pass
+
+    def _set_windows_autostart(self, enable: bool):
+        try:
+            if sys.platform != 'win32':
+                return
+            import winreg
+            run_key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
+            app_name = "WorkspaceApp"
+            exe = sys.executable
+            script = os.path.abspath(sys.argv[0])
+            cmd = f'"{exe}" "{script}"'
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, run_key_path, 0, winreg.KEY_SET_VALUE | winreg.KEY_QUERY_VALUE) as key:
+                if enable:
+                    winreg.SetValueEx(key, app_name, 0, winreg.REG_SZ, cmd)
+                else:
+                    try:
+                        winreg.DeleteValue(key, app_name)
+                    except FileNotFoundError:
+                        pass
+        except Exception:
+            raise
+
     def _on_tab_changed(self, event=None):
         try:
             tab_text = self.notebook.tab(self.notebook.select(), 'text')
@@ -614,6 +665,89 @@ class Application(BaseTk):
             return None
         except Exception:
             return None
+
+    # --- OCR automation helpers ---
+    def _ocr_extract_text(self, filepath) -> str | None:
+        try:
+            svc = OCRService(tesseract_cmd_path=self.config_service.get('tesseract_cmd_path'))
+            text = svc.extract_text_from_image(filepath)
+            try:
+                chk = (text or '').strip().lower()
+                if chk.startswith("오류:") or chk.startswith("error:"):
+                    messagebox.showerror("OCR 오류", str(text))
+                    return None
+            except Exception:
+                pass
+            return text or ''
+        except Exception as e:
+            messagebox.showerror("OCR 오류", f"처리 실패: {e}")
+            return None
+
+    def capture_region_ocr_copy(self):
+        try:
+            self.wm_state('iconic')
+        except Exception:
+            pass
+        def _task():
+            try:
+                path = self.screenshot_service.capture_region()
+                if not path:
+                    self.update_status("캡처가 취소되었습니다")
+                    return
+                text = self._ocr_extract_text(path)
+                if text is None:
+                    return
+                try:
+                    self.clipboard_clear()
+                    self.clipboard_append(text)
+                    self.update_status("OCR 결과를 클립보드에 복사했습니다")
+                except Exception:
+                    pass
+            finally:
+                try:
+                    self.wm_state('normal')
+                except Exception:
+                    pass
+        self.after(200, _task)
+
+    def capture_region_ocr_todo(self):
+        try:
+            self.wm_state('iconic')
+        except Exception:
+            pass
+        def _task():
+            try:
+                path = self.screenshot_service.capture_region()
+                if not path:
+                    self.update_status("캡처가 취소되었습니다")
+                    return
+                text = self._ocr_extract_text(path)
+                if text is None or not text.strip():
+                    return
+                try:
+                    if hasattr(self.todo_service, 'add_from_text'):
+                        count = self.todo_service.add_from_text(text)
+                        self.update_status(f"TODO {count}개 추가")
+                    else:
+                        self.todo_service.add_todo(text.strip())
+                        self.update_status("TODO 1개 추가")
+                    if hasattr(self, 'todo_frame'):
+                        self.todo_frame.refresh_todos()
+                except Exception as e:
+                    messagebox.showerror("TODO 추가", f"실패: {e}")
+            finally:
+                try:
+                    self.wm_state('normal')
+                except Exception:
+                    pass
+        self.after(200, _task)
 if __name__ == "__main__":
     app = Application()
     app.mainloop()
+
+
+
+
+
+
+

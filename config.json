@@ -3,5 +3,14 @@
     "tesseract_cmd_path": "C:/Program Files/Tesseract-OCR/tesseract.exe",
     "window_topmost": false,
     "window_fullscreen": false,
-    "window_geometry": "1200x800+475+47"
+    "window_geometry": "1513x832+307+121",
+    "home_sections": [
+        "clipboard",
+        "screenshot",
+        "todo",
+        "workspace",
+        "formatter",
+        "template"
+    ],
+    "auto_start": false
 }
